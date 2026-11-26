@@ -5,7 +5,7 @@
   --track:color-mix(in srgb,var(--content-color,#222) 12%,transparent)}
 /* List: one row per pair, name - track with two handles - values. */
 #list{position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-start}
-.row{display:grid;grid-template-columns:minmax(0,28%) minmax(0,1fr) auto;align-items:center;gap:3cqw;padding:1.2cqh 0}
+.row{display:grid;grid-template-columns:minmax(0,28%) minmax(0,1fr) auto;align-items:center;gap:3cqw;padding:clamp(5px,1.8cqw,9px) 0}
 .name{font-size:clamp(11px,3.6cqw,17px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .trk{position:relative;height:30px;touch-action:none;cursor:pointer}
 .seg{position:absolute;top:13px;height:4px;border-radius:2px}
