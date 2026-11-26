@@ -144,8 +144,7 @@ function buildList() {
       onMove(e);
     });
     trk.addEventListener('pointermove', onMove);
-    trk.addEventListener('pointerup', onUp);
-    trk.addEventListener('pointercancel', onUp);
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => trk.addEventListener(t, onUp));
     row.querySelectorAll('.vals span[data-w]').forEach(sp => sp.addEventListener('click', () => {
       sel = sel && sel.pair === i && sel.w === sp.dataset.w ? null : {pair: i, w: sp.dataset.w};
       render();
@@ -208,8 +207,7 @@ function buildArc() {
     onMove(e);
   });
   arc.addEventListener('pointermove', onMove);
-  arc.addEventListener('pointerup', onUp);
-  arc.addEventListener('pointercancel', onUp);
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => arc.addEventListener(t, onUp));
 }
 
 function renderArc() {
@@ -229,9 +227,13 @@ function renderArc() {
   });
 }
 
-// Drag: values follow the pointer, sent on release.
+// Drag: values follow the pointer, sent on release. A release outside the tile may not reach it:
+// a move without a pressed button, a lost capture or the window losing focus also end the drag.
+window.addEventListener('pointerup', () => onUp());
+window.addEventListener('blur', () => onUp());
 function onMove(e) {
   if (!drag) return;
+  if (e.pointerType === 'mouse' && e.buttons === 0) { onUp(); return; }
   setValue(local[drag.pair], drag.w, drag.move(e));
   render();
 }

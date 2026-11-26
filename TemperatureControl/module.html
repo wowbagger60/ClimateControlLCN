@@ -137,10 +137,18 @@ arc.addEventListener('pointerdown', e => {
   local = snap(valueAt(e));
   render();
 });
-arc.addEventListener('pointermove', e => { if (drag) { local = snap(valueAt(e)); render(); } });
 const up = () => { if (drag) { drag = false; send(); } };
-arc.addEventListener('pointerup', up);
-arc.addEventListener('pointercancel', up);
+// A release outside the tile may not reach it: a move without a pressed button, a lost capture
+// or the window losing focus also end the drag.
+arc.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (e.pointerType === 'mouse' && e.buttons === 0) { up(); return; }
+  local = snap(valueAt(e));
+  render();
+});
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => arc.addEventListener(t, up));
+window.addEventListener('pointerup', up);
+window.addEventListener('blur', up);
 root.querySelectorAll('.pm button').forEach(b => b.addEventListener('click', () => step(+b.dataset.d)));
 $('auto').addEventListener('click', () => { if (typeof requestAction === 'function') requestAction('Auto', true); });
 $('room').addEventListener('click', () => {
