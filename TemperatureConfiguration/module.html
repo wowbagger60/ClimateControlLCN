@@ -1,0 +1,293 @@
+<style>
+/* Symcon sets --accent-color, --content-color, --card-color, the font and body margins that leave room for the title. */
+#cctc{position:fixed;container-type:size;color:var(--content-color,#222);-webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;--heat:#e8613f;--cool:#2196f3;--band:var(--accent-color,#2bcbaa);
+  --track:color-mix(in srgb,var(--content-color,#222) 12%,transparent)}
+/* List: one row per pair, name - track with two handles - values. */
+#list{position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:center}
+.row{display:grid;grid-template-columns:minmax(0,28%) minmax(0,1fr) auto;align-items:center;gap:3cqw;padding:1.2cqh 0}
+.name{font-size:clamp(11px,3.6cqw,17px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trk{position:relative;height:30px;touch-action:none;cursor:pointer}
+.seg{position:absolute;top:13px;height:4px;border-radius:2px}
+.knob{position:absolute;top:6px;width:18px;height:18px;margin-left:-9px;border-radius:50%;box-sizing:border-box;border:2px solid var(--knob-ring,#fff)}
+.vals{font-size:clamp(11px,3.4cqw,16px);font-variant-numeric:tabular-nums;white-space:nowrap}
+.vals span{cursor:pointer;padding:2px 3px;border-radius:4px}
+.vals span.sel{outline:1.5px solid currentColor}
+#bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;gap:3cqw;
+  font-size:clamp(12px,3.8cqw,18px);background:var(--cctc-base,#fff);padding:1cqh 0}
+/* Single pair: arc like Symcon's thermostat, heating and cooling handle on one scale. */
+#single{position:absolute;inset:0;display:grid;place-items:center}
+#box{position:relative;width:min(100cqw,100cqh);aspect-ratio:1}
+#arc{position:absolute;inset:0;width:100%;height:100%;touch-action:none;overflow:visible}
+#arc path{fill:none;stroke-width:7;stroke-linecap:round}
+#arc circle{stroke:var(--knob-ring,#fff);stroke-width:2.5;cursor:grab}
+#center{position:absolute;left:16%;right:16%;top:28%;bottom:20%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqmin}
+.line{display:flex;align-items:baseline;gap:2cqmin;white-space:nowrap;cursor:pointer;padding:.5cqmin 2cqmin;border-radius:2cqmin;border:.4cqmin solid transparent}
+.line.sel{border-color:currentColor}
+.line .lbl{font-size:4.5cqmin;text-transform:uppercase;letter-spacing:.05em}
+.line .val{font-size:8.5cqmin;font-variant-numeric:tabular-nums}
+.pm{display:flex;gap:10cqmin}
+button.step{all:unset;cursor:pointer;width:9cqmin;height:9cqmin;min-width:28px;min-height:28px;display:grid;place-items:center;border-radius:50%;
+  font-size:7cqmin;line-height:1;color:inherit;border:1.5px solid color-mix(in srgb,currentColor 35%,transparent)}
+#bar button.step{width:30px;height:30px;font-size:18px}
+#message{position:absolute;z-index:1;left:4%;right:4%;bottom:0;text-align:center;font-size:clamp(10px,3.6cqw,13px);color:#c0392b;
+  background:var(--cctc-base,#fff);border-radius:6px;padding:2px 4px}
+#invalid{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(11px,4cqw,16px);opacity:.7}
+[hidden]{display:none!important}
+</style>
+<div id="cctc">
+  <div id="list" hidden></div>
+  <div id="bar" hidden></div>
+  <div id="single" hidden><div id="box">
+    <svg id="arc" viewBox="0 0 200 200" aria-hidden="true"></svg>
+    <div id="center">
+      <div class="line" data-w="heat"><span class="lbl"></span><span class="val"></span></div>
+      <div class="line" data-w="cool"><span class="lbl"></span><span class="val"></span></div>
+      <div class="pm"><button class="step" data-d="-1">−</button><button class="step" data-d="1">+</button></div>
+    </div>
+  </div></div>
+  <div id="invalid" hidden></div>
+  <div id="message" role="status" hidden></div>
+</div>
+<script>
+(() => {
+'use strict';
+let s = /*__STATE__*/{};
+const NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const root = $('cctc'), list = $('list'), bar = $('bar'), single = $('single'), arc = $('arc');
+const A0 = -135, A1 = 135, R = 80;
+let local = null;          // pairs as shown: server values plus edits not yet confirmed
+let sel = null;            // {pair, w: 'heat'|'cool'} for the +/- buttons
+let pendingSend = false, sendTimer = 0, holdTimer = 0, messageTimer = 0, shownMessage = s.messageId || 0, drag = null, layout = '';
+const fmt = new Intl.NumberFormat(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+
+function fit() {
+  const st = getComputedStyle(document.body);
+  for (const k of ['Top', 'Bottom', 'Left', 'Right']) root.style[k.toLowerCase()] = st['margin' + k];
+}
+// The tile may be transparent: derive an opaque base from the text colour.
+function shade() {
+  const probe = document.createElement('span');
+  probe.style.color = 'var(--content-color, #222)';
+  document.body.append(probe);
+  const rgb = (getComputedStyle(probe).color.match(/[\d.]+/g) || [34, 34, 34]).map(Number);
+  probe.remove();
+  const light = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] > 128;
+  root.style.setProperty('--cctc-base', light ? '#333438' : '#ffffff');
+  root.style.setProperty('--knob-ring', light ? '#333438' : '#ffffff');
+}
+
+const L = () => s.limits;
+const lo = () => Math.min(L().heatMin, L().coolMin), hi = () => Math.max(L().heatMax, L().coolMax);
+const frac = v => (v - lo()) / (hi() - lo());
+const snap = v => Math.round(v / L().step) * L().step;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+// Moves one handle; the other one stays, the gap stops the moving one.
+function setValue(p, w, v) {
+  const l = L();
+  v = snap(v);
+  if (w === 'heat') p.heat = clamp(Math.min(v, p.cool - l.gap), l.heatMin, l.heatMax);
+  else p.cool = clamp(Math.max(v, p.heat + l.gap), l.coolMin, l.coolMax);
+}
+
+function send(i) {
+  clearTimeout(sendTimer);
+  const p = local[i];
+  if (typeof requestAction === 'function') requestAction('Set', JSON.stringify({pair: i, heat: p.heat, cool: p.cool}));
+  // Without confirmation the tile falls back to the variables.
+  clearTimeout(holdTimer);
+  holdTimer = setTimeout(() => { local = null; render(); }, 4000);
+}
+function sendLater(i) {
+  pendingSend = true;
+  clearTimeout(sendTimer);
+  sendTimer = setTimeout(() => { pendingSend = false; send(i); }, 1200);
+}
+
+function step(d) {
+  if (!sel) return;
+  const p = local[sel.pair];
+  setValue(p, sel.w, p[sel.w] + d * L().step);
+  render();
+  sendLater(sel.pair);
+}
+
+// List --------------------------------------------------------------------------------------------------
+function segments(el, p) {
+  const segs = el.querySelectorAll('.seg'), knobs = el.querySelectorAll('.knob');
+  const h = frac(p.heat) * 100, c = frac(p.cool) * 100;
+  const set = (e, a, b, col) => { e.style.left = a + '%'; e.style.width = (b - a) + '%'; e.style.background = col; };
+  set(segs[0], 0, h, 'color-mix(in srgb,var(--heat) 35%,transparent)');
+  set(segs[1], h, c, 'var(--band)');
+  set(segs[2], c, 100, 'color-mix(in srgb,var(--cool) 35%,transparent)');
+  knobs[0].style.left = h + '%';
+  knobs[1].style.left = c + '%';
+}
+
+function buildList() {
+  list.textContent = '';
+  local.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<span class="name"></span><div class="trk"><div class="seg"></div><div class="seg"></div><div class="seg"></div>'
+      + '<div class="knob" style="background:var(--heat)"></div><div class="knob" style="background:var(--cool)"></div></div>'
+      + '<span class="vals"><span data-w="heat" style="color:var(--heat)"></span> · <span data-w="cool" style="color:var(--cool)"></span></span>';
+    row.querySelector('.name').textContent = p.name;
+    const trk = row.querySelector('.trk');
+    const val = e => { const r = trk.getBoundingClientRect(); return lo() + (e.clientX - r.left) / r.width * (hi() - lo()); };
+    trk.addEventListener('pointerdown', e => {
+      const v = val(e), q = local[i];
+      drag = {pair: i, w: Math.abs(v - q.heat) <= Math.abs(v - q.cool) ? 'heat' : 'cool', move: e2 => val(e2)};
+      trk.setPointerCapture(e.pointerId);
+      onMove(e);
+    });
+    trk.addEventListener('pointermove', onMove);
+    trk.addEventListener('pointerup', onUp);
+    trk.addEventListener('pointercancel', onUp);
+    row.querySelectorAll('.vals span[data-w]').forEach(sp => sp.addEventListener('click', () => {
+      sel = sel && sel.pair === i && sel.w === sp.dataset.w ? null : {pair: i, w: sp.dataset.w};
+      render();
+    }));
+    list.append(row);
+  });
+}
+
+function renderList() {
+  [...list.children].forEach((row, i) => {
+    const p = local[i];
+    segments(row.querySelector('.trk'), p);
+    row.querySelectorAll('.vals span[data-w]').forEach(sp => {
+      sp.textContent = fmt.format(p[sp.dataset.w]);
+      sp.classList.toggle('sel', !!sel && sel.pair === i && sel.w === sp.dataset.w);
+    });
+  });
+  bar.hidden = !sel;
+  list.style.bottom = sel ? '48px' : '0';
+  if (sel) {
+    const p = local[sel.pair];
+    bar.innerHTML = '<span></span><button class="step" data-d="-1">−</button><b></b><button class="step" data-d="1">+</button><button class="step" data-x>×</button>';
+    bar.firstChild.textContent = p.name + ' · ' + s.texts[sel.w];
+    bar.querySelector('b').textContent = fmt.format(p[sel.w]) + ' °C';
+    bar.querySelector('b').style.color = 'var(--' + sel.w + ')';
+    bar.querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => step(+b.dataset.d)));
+    bar.querySelector('[data-x]').addEventListener('click', () => { sel = null; render(); });
+  }
+}
+
+// Arc ---------------------------------------------------------------------------------------------------
+function pt(a, r = R) { const t = a * Math.PI / 180; return [100 + r * Math.sin(t), 100 - r * Math.cos(t)]; }
+function arcPath(a, b) {
+  if (b - a < 0.01) return '';
+  const p = pt(a), q = pt(b);
+  return `M${p}A${R} ${R} 0 ${b - a > 180 ? 1 : 0} 1 ${q}`;
+}
+const ang = v => A0 + frac(v) * (A1 - A0);
+
+function buildArc() {
+  arc.innerHTML = '<path id="t0"/><path id="t1"/><path id="t2"/><circle id="kh" r="9"/><circle id="kc" r="9"/>';
+  $('t0').style.stroke = 'color-mix(in srgb,var(--heat) 35%,transparent)';
+  $('t1').style.stroke = 'var(--band)';
+  $('t2').style.stroke = 'color-mix(in srgb,var(--cool) 35%,transparent)';
+  $('kh').style.fill = 'var(--heat)';
+  $('kc').style.fill = 'var(--cool)';
+  const val = e => {
+    const r = arc.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width * 200 - 100, y = (e.clientY - r.top) / r.height * 200 - 100;
+    let a = Math.atan2(x, -y) * 180 / Math.PI;
+    if (a > A1 || a < A0) a = a > 0 ? A1 : A0;
+    return lo() + (a - A0) / (A1 - A0) * (hi() - lo());
+  };
+  arc.addEventListener('pointerdown', e => {
+    const v = val(e), q = local[0];
+    const w = e.target.id === 'kh' ? 'heat' : e.target.id === 'kc' ? 'cool' : Math.abs(v - q.heat) <= Math.abs(v - q.cool) ? 'heat' : 'cool';
+    drag = {pair: 0, w, move: val};
+    sel = {pair: 0, w};
+    arc.setPointerCapture(e.pointerId);
+    onMove(e);
+  });
+  arc.addEventListener('pointermove', onMove);
+  arc.addEventListener('pointerup', onUp);
+  arc.addEventListener('pointercancel', onUp);
+}
+
+function renderArc() {
+  const p = local[0];
+  if (!sel) sel = {pair: 0, w: 'heat'};
+  const h = ang(p.heat), c = ang(p.cool);
+  $('t0').setAttribute('d', arcPath(A0, h));
+  $('t1').setAttribute('d', arcPath(h, c));
+  $('t2').setAttribute('d', arcPath(c, A1));
+  [['kh', h], ['kc', c]].forEach(([id, a]) => { const q = pt(a); $(id).setAttribute('cx', q[0]); $(id).setAttribute('cy', q[1]); });
+  single.querySelectorAll('.line').forEach(line => {
+    const w = line.dataset.w;
+    line.querySelector('.lbl').textContent = s.texts[w];
+    line.querySelector('.val').textContent = fmt.format(p[w]) + ' °C';
+    line.style.color = 'var(--' + w + ')';
+    line.classList.toggle('sel', sel.w === w);
+  });
+}
+
+// Drag: values follow the pointer, sent on release.
+function onMove(e) {
+  if (!drag) return;
+  setValue(local[drag.pair], drag.w, drag.move(e));
+  render();
+}
+function onUp() {
+  if (!drag) return;
+  const i = drag.pair;
+  drag = null;
+  send(i);
+}
+
+function render() {
+  const pairs = s.pairs || [];
+  if (!local || local.length !== pairs.length) local = pairs.map(p => ({...p}));
+  const mode = pairs.length === 0 ? 'invalid' : pairs.length === 1 ? 'single' : 'list';
+  list.hidden = mode !== 'list';
+  single.hidden = mode !== 'single';
+  $('invalid').hidden = mode !== 'invalid';
+  if (mode !== 'list') bar.hidden = true;
+  const key = mode + ':' + pairs.map(p => p.name).join('|');
+  if (key !== layout) {
+    layout = key;
+    if (mode === 'list') buildList();
+    if (mode === 'single') buildArc();
+    $('invalid').textContent = s.texts.invalid;
+  }
+  if (mode === 'list') renderList();
+  if (mode === 'single') renderArc();
+}
+
+function showMessage() {
+  const m = $('message');
+  if (!s.message || (s.messageId || 0) === shownMessage) return;
+  shownMessage = s.messageId;
+  m.textContent = s.message;
+  m.hidden = false;
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => { m.hidden = true; }, 6000);
+}
+
+single.querySelectorAll('.line').forEach(line => line.addEventListener('click', () => { sel = {pair: 0, w: line.dataset.w}; render(); }));
+single.querySelectorAll('.pm button').forEach(b => b.addEventListener('click', () => step(+b.dataset.d)));
+
+window.handleMessage = data => {
+  try {
+    s = typeof data === 'string' ? JSON.parse(data) : data;
+    // Keep edits that are still being dragged or waiting to be sent; otherwise follow the variables.
+    if (!drag && !pendingSend) { clearTimeout(holdTimer); local = null; }
+    render();
+    showMessage();
+  } catch (e) {}
+};
+
+window.addEventListener('resize', fit);
+window.addEventListener('load', () => { fit(); shade(); });
+fit();
+shade();
+render();
+})();
+</script>

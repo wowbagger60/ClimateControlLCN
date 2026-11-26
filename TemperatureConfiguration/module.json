@@ -1,0 +1,14 @@
+{
+  "id": "{8ED57DF9-A6EB-4D82-81A4-3BD77D4B2DC3}",
+  "name": "TemperatureConfiguration",
+  "type": 3,
+  "vendor": "Cassanis Automation",
+  "url": "https://github.com/wowbagger60/ClimateControlLCN/blob/main/TemperatureConfiguration/README.md",
+  "aliases": [
+    "Temperature Configuration"
+  ],
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "CCTC"
+}
