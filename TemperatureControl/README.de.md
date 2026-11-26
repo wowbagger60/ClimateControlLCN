@@ -6,12 +6,14 @@ Raumthermostat für ein LCN-Klimamodul nach Vorlage „Klima 1.3“: Regler 1 he
 
 **Kachel (für alle):**
 
-- Der Bogen zeigt den Sollwert des aktiven Reglers, rot beim Heizen und blau beim Kühlen. Eine Marke zeigt den Standard-Sollwert, ein Punkt die Raumtemperatur.
+- Aufbau wie Symcons Thermostat: oben die Raumtemperatur, in der Mitte gross der Sollwert, darunter − und +.
+- Der Bogen hat einen Farbverlauf von Blau (unten) nach Rot (oben) und einen Punkt pro 0,5 °C. Beim Heizen ist er vom unteren Ende bis zum Griff farbig, beim Kühlen vom oberen Ende bis zum Griff, der Rest ist grau. Eine kleine Marke aussen zeigt den Standard-Sollwert.
+- Ein Tipp auf die Raumtemperatur öffnet das eingestellte Ziel, zum Beispiel die Temperatur-Historie.
 - Griff ziehen oder − und + drücken. Gesendet wird beim Loslassen oder 1,2 s nach dem letzten + oder −.
 - Eine Änderung wirkt wie T± am Taster. Der Raum geht auf manu (Neu laden gesperrt), und der Sollwert wird live gesetzt, nicht in ein Register.
 - Im Handbetrieb erscheint der Knopf **Auto**. Er beendet den Handbetrieb, und der Raum lädt sein Register neu.
-- Bei ABU B (belegt, Klima aus) oder U (unbelegt) lässt sich nichts einstellen. Die Kachel zeigt dann nur Raumtemperatur und Zustand.
-- Feuchte und Luftqualität erscheinen unten, wenn Variablen dafür gewählt sind. Gezeigt wird ihr formatierter Wert.
+- Bei ABU B (belegt, Klima aus) oder U (unbelegt) lässt sich nichts einstellen. Der Bogen ist dann grau, ohne Griff und Knöpfe.
+- Feuchte und Luftqualität erscheinen unten mit einem Symbol, wenn Variablen dafür gewählt sind. Gezeigt wird ihr formatierter Wert.
 - Ein ABU-Wechsel, ein Reset oder ein Stromausfall beenden den Handbetrieb (in LCN programmiert). Bei einem Gastwechsel ABU deshalb zuerst auf U und danach auf A oder B setzen.
 
 **Standard-Sollwerte (Konfiguration):**
@@ -33,6 +35,7 @@ Raumthermostat für ein LCN-Klimamodul nach Vorlage „Klima 1.3“: Regler 1 he
 | --- | --- |
 | Raumtemperatur | Float-Variable, Pflicht |
 | Feuchte, Luftqualität | Integer- oder Float-Variablen, optional |
+| Ziel der Raumtemperatur | Objekt, das ein Tipp auf die Raumtemperatur öffnet, optional |
 | Sollwert Regler 1 / 2 | S1Target und S2Target der LCN-Value-Instanz. Die Befehle gehen an das LCN-Modul der Heizen-Variable |
 | Klima manu | Status von Relais „K manu“ |
 | Modus | Modusrelais, ein = Kühlen |

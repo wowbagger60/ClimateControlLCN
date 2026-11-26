@@ -6,12 +6,14 @@ Room thermostat for an LCN climate module built on the "Klima 1.3" template: reg
 
 **Tile (for everyone):**
 
-- The arc shows the setpoint of the active regulator, red for heating and blue for cooling. A tick marks the standard setpoint, a dot the room temperature.
+- Layout as in Symcon's thermostat: room temperature at the top, the setpoint large in the middle, − and + below.
+- The arc has a gradient from blue (low) to red (high) and one dot per 0.5 °C. When heating it is coloured from the low end up to the handle, when cooling from the high end down to the handle; the rest is grey. A small mark outside shows the standard setpoint.
+- A tap on the room temperature opens the configured target, for example the temperature history.
 - Drag the handle or press − and +. The value is sent on release or 1.2 s after the last + or −.
 - A change acts like T± on the wall key. The room switches to manual (reload locked) and the setpoint is set live, not into a register.
 - In manual the **Auto** button appears. It ends manual and the room reloads its register.
-- With occupancy B (occupied, climate off) or U (unoccupied) nothing can be set. The tile then shows only the room temperature and the state.
-- Humidity and air quality appear at the bottom when variables are selected. The tile shows their formatted value.
+- With occupancy B (occupied, climate off) or U (unoccupied) nothing can be set. The arc is then grey, without handle and buttons.
+- Humidity and air quality appear at the bottom with an icon when variables are selected. The tile shows their formatted value.
 - An occupancy change, a reset or a power failure ends manual (programmed in LCN). On a guest change, set the occupancy to U first and then to A or B.
 
 **Standard setpoints (configuration):**
@@ -33,6 +35,7 @@ Room thermostat for an LCN climate module built on the "Klima 1.3" template: reg
 | --- | --- |
 | Room temperature | Float variable, required |
 | Humidity, air quality | Integer or float variables, optional |
+| Target of the room temperature | Object opened by a tap on the room temperature, optional |
 | Setpoint regulator 1 / 2 | S1Target and S2Target of the LCN Value instance. Commands go to the LCN module of the heating variable |
 | Climate manual | Status of relay "K manu" |
 | Mode | Mode relay, on = cooling |

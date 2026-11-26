@@ -1,49 +1,47 @@
 <style>
 /* Symcon sets --accent-color, --content-color, --card-color, the font and body margins that leave room for the title. */
 #cctemp{position:fixed;container-type:size;color:var(--content-color,#222);-webkit-tap-highlight-color:transparent;
-  user-select:none;-webkit-user-select:none;--heat:#e8613f;--cool:#2196f3;--mode:var(--heat);
-  --track:color-mix(in srgb,var(--content-color,#222) 12%,transparent);display:flex;flex-direction:column}
-#cctemp.cool{--mode:var(--cool)}
-#cctemp.off{--mode:color-mix(in srgb,var(--content-color,#222) 30%,transparent)}
-#main{flex:1;min-height:0;display:grid;place-items:center}
-#box{position:relative;height:min(100%,100cqw);aspect-ratio:1}
+  user-select:none;-webkit-user-select:none;display:grid;place-items:center;
+  --track:color-mix(in srgb,var(--content-color,#222) 12%,transparent)}
+#box{position:relative;width:min(100cqw,100cqh);aspect-ratio:1}
 #arc{position:absolute;inset:0;width:100%;height:100%;touch-action:none;overflow:visible}
-#arc path{fill:none;stroke-width:7;stroke-linecap:round}
-#arc #track{stroke:var(--track)}
-#arc #fill{stroke:var(--mode)}
-#arc #tick{stroke:var(--content-color,#222);stroke-width:2;opacity:.55}
-#arc #room{fill:var(--content-color,#222);opacity:.55}
-#arc #knob{fill:var(--mode);stroke:var(--knob-ring,#fff);stroke-width:2.5;cursor:grab}
-#center{position:absolute;left:18%;right:18%;top:22%;bottom:22%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqmin;text-align:center}
-#lbl{font-size:4.2cqmin;text-transform:uppercase;letter-spacing:.06em;color:var(--mode)}
-#cctemp.off #lbl{color:inherit;opacity:.7;text-transform:none;letter-spacing:0}
-#val{font-size:13cqmin;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
-#sub{font-size:4.2cqmin;opacity:.75;white-space:nowrap}
-.pm{display:flex;gap:12cqmin;margin-top:1cqmin}
+#arc path{fill:none;stroke-width:7}
+#arc #track{stroke:var(--track);stroke-linecap:round}
+#arc .dot{fill:#fff;opacity:.7}
+#arc .dot.off{fill:var(--content-color,#222);opacity:.22}
+#arc #tick{stroke:var(--content-color,#222);stroke-width:2;opacity:.5;stroke-linecap:round}
+#arc #knob{stroke:var(--knob-ring,#fff);stroke-width:2.5;cursor:grab}
+#center{position:absolute;left:18%;right:18%;top:24%;bottom:24%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqmin}
+#room{display:flex;align-items:center;gap:.8cqmin;font-size:7cqmin;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+#room.link{cursor:pointer}
+#room svg{width:6cqmin;height:6cqmin;flex:none}
+#val{font-size:13cqmin;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+#cctemp.off #val{opacity:.45}
+.pm{display:flex;gap:12cqmin;margin-top:1.5cqmin}
 button{all:unset;cursor:pointer;color:inherit;box-sizing:border-box}
 button.step{width:9cqmin;height:9cqmin;min-width:28px;min-height:28px;display:grid;place-items:center;border-radius:50%;
-  font-size:7cqmin;line-height:1;border:1.5px solid color-mix(in srgb,currentColor 35%,transparent)}
-#auto{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);font-size:4.2cqmin;padding:1.2cqmin 4cqmin;border-radius:99px;
-  background:var(--mode);color:#fff;white-space:nowrap}
-#foot{display:flex;justify-content:center;gap:6cqw;font-size:clamp(11px,3.6cqmin,15px);opacity:.8;padding-top:1cqh;white-space:nowrap}
-#foot:empty{display:none}
+  font-size:6cqmin;line-height:1;border:1.5px solid color-mix(in srgb,currentColor 35%,transparent)}
+#auto{font-size:4cqmin;padding:1cqmin 3.5cqmin;border-radius:99px;margin-top:1.5cqmin;white-space:nowrap;
+  border:1.5px solid color-mix(in srgb,currentColor 35%,transparent)}
+#foot{position:absolute;left:24%;right:24%;bottom:6%;display:flex;justify-content:center;gap:5cqmin;font-size:4.2cqmin;opacity:.8;white-space:nowrap}
+#foot span{display:flex;align-items:center;gap:.8cqmin}
+#foot svg{width:4.4cqmin;height:4.4cqmin;flex:none}
 #message{position:absolute;z-index:1;left:4%;right:4%;bottom:0;text-align:center;font-size:clamp(10px,3.6cqw,13px);color:#c0392b;
   background:var(--cctemp-base,#fff);border-radius:6px;padding:2px 4px}
 #invalid{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(11px,4cqw,16px);opacity:.7}
 [hidden]{display:none!important}
 </style>
 <div id="cctemp">
-  <div id="main"><div id="box">
-    <svg id="arc" viewBox="0 0 200 200" aria-hidden="true"><path id="track"/><path id="fill"/><path id="tick"/><circle id="room" r="3.5"/><circle id="knob" r="9"/></svg>
+  <div id="box">
+    <svg id="arc" viewBox="0 0 200 200" aria-hidden="true"><path id="track"/><g id="fill"></g><g id="dots"></g><path id="tick"/><circle id="knob" r="12"/></svg>
     <div id="center">
-      <span id="lbl"></span>
+      <span id="room"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/><path d="M12 9v6.5"/><circle cx="12" cy="17" r="1.3" fill="currentColor"/></svg><span></span></span>
       <span id="val"></span>
-      <span id="sub"></span>
       <div class="pm"><button class="step" data-d="-1">−</button><button class="step" data-d="1">+</button></div>
+      <button id="auto" hidden></button>
     </div>
-    <button id="auto" hidden></button>
-  </div></div>
-  <div id="foot"></div>
+    <div id="foot"></div>
+  </div>
   <div id="invalid" hidden></div>
   <div id="message" role="status" hidden></div>
 </div>
@@ -51,11 +49,18 @@ button.step{width:9cqmin;height:9cqmin;min-width:28px;min-height:28px;display:gr
 (() => {
 'use strict';
 let s = /*__STATE__*/{};
+const NS = 'http://www.w3.org/2000/svg';
 const $ = id => document.getElementById(id);
 const root = $('cctemp'), arc = $('arc');
 const A0 = -135, A1 = 135, R = 80;
+// Gradient along the scale as in Symcon's thermostat: blue at the low end, red at the high end.
+const BLUE = [33, 166, 240], RED = [244, 74, 47];
+const ICONS = {
+  humidity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.5s-6 6.6-6 10.6a6 6 0 0 0 12 0c0-4-6-10.6-6-10.6z"/></svg>',
+  air: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/></svg>'
+};
 let local = null;          // setpoint as shown while dragging or waiting to be sent
-let pendingSend = false, sendTimer = 0, holdTimer = 0, messageTimer = 0, shownMessage = s.messageId || 0, drag = false;
+let pendingSend = false, sendTimer = 0, holdTimer = 0, messageTimer = 0, shownMessage = s.messageId || 0, drag = false, scale = '';
 const fmt = new Intl.NumberFormat(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
 
 function fit() {
@@ -79,11 +84,17 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const snap = v => clamp(Math.round(v / s.step) * s.step, s.min, s.max);
 const frac = v => clamp((v - s.min) / (s.max - s.min), 0, 1);
 const ang = v => A0 + frac(v) * (A1 - A0);
+const color = f => 'rgb(' + BLUE.map((b, i) => Math.round(b + (RED[i] - b) * f)).join(',') + ')';
 function pt(a, r = R) { const t = a * Math.PI / 180; return [100 + r * Math.sin(t), 100 - r * Math.cos(t)]; }
 function arcPath(a, b) {
   if (b - a < 0.01) return '';
   const p = pt(a), q = pt(b);
   return `M${p}A${R} ${R} 0 ${b - a > 180 ? 1 : 0} 1 ${q}`;
+}
+function node(tag, attrs) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
 }
 
 function send() {
@@ -125,54 +136,83 @@ const up = () => { if (drag) { drag = false; send(); } };
 arc.addEventListener('pointerup', up);
 arc.addEventListener('pointercancel', up);
 root.querySelectorAll('.pm button').forEach(b => b.addEventListener('click', () => step(+b.dataset.d)));
-$('auto').addEventListener('click', () => {
-  if (typeof requestAction === 'function') requestAction('Auto', true);
+$('auto').addEventListener('click', () => { if (typeof requestAction === 'function') requestAction('Auto', true); });
+$('room').addEventListener('click', () => {
+  if (Number.isInteger(s.target) && s.target > 1 && typeof openObject === 'function') openObject(s.target);
 });
+
+// One dot per step (0.5 °C); rebuilt only when the scale changes.
+function buildDots() {
+  const g = $('dots');
+  g.textContent = '';
+  const n = Math.round((s.max - s.min) / s.step);
+  for (let i = 0; i <= n; i++) {
+    const q = pt(ang(s.min + i * s.step));
+    g.append(node('circle', {cx: q[0].toFixed(2), cy: q[1].toFixed(2), r: 1.5, class: 'dot'}));
+  }
+}
+
+// Coloured part: heating from the low end up to the handle, cooling from the high end down to the handle.
+function renderFill(from, to) {
+  const g = $('fill');
+  g.textContent = '';
+  if (to - from < 0.01) return;
+  const pieces = Math.max(1, Math.ceil((to - from) / 3));
+  const w = (to - from) / pieces;
+  for (let i = 0; i < pieces; i++) {
+    const a = from + i * w, b = Math.min(to, a + w + 0.6);   // slight overlap hides the seams
+    const f = (a + w / 2 - A0) / (A1 - A0);
+    g.append(node('path', {d: arcPath(a, b), stroke: color(f)}));
+  }
+  // Round cap at the outer end of the scale.
+  const end = from === A0 ? A0 : A1, q = pt(end);
+  g.append(node('circle', {cx: q[0], cy: q[1], r: 3.5, fill: color(end === A0 ? 0 : 1)}));
+}
 
 function render() {
   const t = s.texts || {};
   $('invalid').hidden = !!s.valid;
-  $('main').hidden = !s.valid;
+  $('box').hidden = !s.valid;
   $('invalid').textContent = t.invalid || '';
-  if (!s.valid) { $('foot').textContent = ''; return; }
+  if (!s.valid) return;
 
-  const on = editable();
-  const v = local ?? s.setpoint;
-  root.classList.toggle('cool', s.mode === 'cool');
+  const on = editable(), cool = s.mode === 'cool';
+  const v = local ?? s.setpoint, a = ang(v);
   root.classList.toggle('off', !on);
 
+  const key = s.min + '/' + s.max + '/' + s.step;
+  if (key !== scale) { scale = key; buildDots(); }
   $('track').setAttribute('d', arcPath(A0, A1));
-  $('fill').setAttribute('d', on ? arcPath(A0, ang(v)) : '');
-  const k = pt(ang(v));
+  if (on) renderFill(cool ? a : A0, cool ? A1 : a); else renderFill(0, 0);
+  // Dots: light on the coloured part, dark on the grey part.
+  [...$('dots').children].forEach((d, i) => {
+    const da = ang(s.min + i * s.step);
+    d.classList.toggle('off', !on || (cool ? da < a - 0.01 : da > a + 0.01));
+  });
+  const k = pt(a);
   $('knob').setAttribute('cx', k[0]); $('knob').setAttribute('cy', k[1]);
+  $('knob').setAttribute('fill', color(frac(v)));
   $('knob').style.display = on ? '' : 'none';
-  // Standard setpoint: short tick across the track.
-  const a = ang(s.standard), p = pt(a, R - 9), q = pt(a, R + 9);
+  // Standard setpoint: short mark outside the track.
+  const sa = ang(s.standard), p = pt(sa, R + 6), q = pt(sa, R + 12);
   $('tick').setAttribute('d', on ? `M${p}L${q}` : '');
-  // Room temperature: dot inside the track.
-  const inRange = s.temperature >= s.min && s.temperature <= s.max;
-  const r = pt(ang(s.temperature), R - 16);
-  $('room').setAttribute('cx', r[0]); $('room').setAttribute('cy', r[1]);
-  $('room').style.display = on && inRange ? '' : 'none';
 
-  if (on) {
-    $('lbl').textContent = (s.mode === 'cool' ? t.cool : t.heat) + (s.manual ? ' · ' + t.manual : '');
-    $('val').textContent = fmt.format(v) + ' °C';
-    $('sub').textContent = t.room + ' ' + fmt.format(s.temperature) + ' °C';
-  } else {
-    $('lbl').textContent = s.occupancy === 'B' ? t.occupied : t.unoccupied;
-    $('val').textContent = fmt.format(s.temperature) + ' °C';
-    $('sub').textContent = '';
-  }
+  $('room').lastChild.textContent = fmt.format(s.temperature) + ' °C';
+  $('room').classList.toggle('link', s.target > 1);
+  $('val').textContent = fmt.format(v) + ' °C';
   root.querySelector('.pm').hidden = !on;
-  const auto = $('auto');
-  auto.hidden = !(on && s.manual);
-  auto.textContent = t.auto + ' · ' + fmt.format(s.standard) + ' °C';
+  $('auto').hidden = !(on && s.manual);
+  $('auto').textContent = t.auto + ' ' + fmt.format(s.standard) + ' °C';
 
-  const foot = [];
-  if (s.humidity !== null && s.humidity !== undefined) foot.push(t.humidity + ' ' + s.humidity);
-  if (s.airQuality !== null && s.airQuality !== undefined) foot.push(t.airQuality + ' ' + s.airQuality);
-  $('foot').textContent = foot.join('   ·   ');
+  const foot = $('foot');
+  foot.textContent = '';
+  for (const [k, icon] of [['humidity', ICONS.humidity], ['airQuality', ICONS.air]]) {
+    if (s[k] === null || s[k] === undefined) continue;
+    const span = document.createElement('span');
+    span.innerHTML = icon;
+    span.append(s[k]);
+    foot.append(span);
+  }
 }
 
 function showMessage() {

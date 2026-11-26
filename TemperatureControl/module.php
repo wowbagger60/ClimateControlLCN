@@ -34,6 +34,7 @@ class TemperatureControl extends IPSModuleStrict
         $this->RegisterPropertyInteger('Temperature', 1);
         $this->RegisterPropertyInteger('Humidity', 1);
         $this->RegisterPropertyInteger('AirQuality', 1);
+        $this->RegisterPropertyInteger('Target', 1);            // opened by a tap on the room temperature
         $this->RegisterPropertyInteger('HeatTarget', 1);
         $this->RegisterPropertyInteger('CoolTarget', 1);
         $this->RegisterPropertyInteger('Cooling', 1);
@@ -167,7 +168,8 @@ class TemperatureControl extends IPSModuleStrict
                 ['type' => 'ExpansionPanel', 'caption' => 'Room', 'expanded' => true, 'items' => [
                     ['name' => 'Temperature', 'caption' => 'Room temperature'] + $float,
                     ['name' => 'Humidity', 'caption' => 'Humidity (optional)'] + $number,
-                    ['name' => 'AirQuality', 'caption' => 'Air quality (optional)'] + $number
+                    ['name' => 'AirQuality', 'caption' => 'Air quality (optional)'] + $number,
+                    ['type' => 'SelectObject', 'name' => 'Target', 'caption' => 'Target of the room temperature (optional, e.g. its history)']
                 ]],
                 ['type' => 'ExpansionPanel', 'caption' => 'LCN', 'expanded' => true, 'items' => [
                     ['name' => 'HeatTarget', 'caption' => 'Setpoint regulator 1, heating (LCN Value S1Target)'] + $float,
@@ -532,17 +534,8 @@ class TemperatureControl extends IPSModuleStrict
         $state = [
             'valid' => $this->GetStatus() === IS_ACTIVE,
             'texts' => [
-                'heat'       => $this->Translate('Heating'),
-                'cool'       => $this->Translate('Cooling'),
-                'auto'       => $this->Translate('Auto'),
-                'manual'     => $this->Translate('Manual'),
-                'standard'   => $this->Translate('Standard'),
-                'room'       => $this->Translate('Room'),
-                'humidity'   => $this->Translate('Humidity'),
-                'airQuality' => $this->Translate('Air quality'),
-                'occupied'   => $this->Translate('Occupied, climate off'),
-                'unoccupied' => $this->Translate('Unoccupied'),
-                'invalid'    => $this->Translate('Not configured')
+                'auto'    => $this->Translate('Auto'),
+                'invalid' => $this->Translate('Not configured')
             ],
             'message'   => $this->GetBuffer('Message'),
             'messageId' => (int) $this->GetBuffer('MessageId')
@@ -558,6 +551,7 @@ class TemperatureControl extends IPSModuleStrict
             'occupancy'   => $this->occupancy(),
             'manual'      => GetValueBoolean($this->ReadPropertyInteger('Manual')),
             'temperature' => GetValueFloat($this->ReadPropertyInteger('Temperature')),
+            'target'      => IPS_ObjectExists($this->ReadPropertyInteger('Target')) ? $this->ReadPropertyInteger('Target') : 1,
             'setpoint'    => GetValueFloat($this->target($regulator)),
             'standard'    => $this->GetValue($cooling ? 'DefaultCool' : 'DefaultHeat'),
             'min'         => $min,
