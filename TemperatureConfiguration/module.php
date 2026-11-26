@@ -89,6 +89,15 @@ class TemperatureConfiguration extends IPSModuleStrict
 
     public function GetConfigurationForm(): string
     {
+        // Rows that do not point to a TemperatureControl instance are shown in red.
+        $values = [];
+        foreach ($this->rooms() as $room) {
+            $row = ['Caption' => $room['Caption'], 'Control' => $room['Control']];
+            if ($room['Heat'] === 0 || $room['Cool'] === 0) {
+                $row['rowColor'] = '#FFC0C0';
+            }
+            $values[] = $row;
+        }
         return json_encode([
             'elements' => [
                 [
@@ -99,6 +108,7 @@ class TemperatureConfiguration extends IPSModuleStrict
                     'delete'   => true,
                     'changeOrder' => true,
                     'rowCount' => 8,
+                    'values'   => $values,
                     'columns'  => [
                         [
                             'caption' => 'Name',
@@ -112,7 +122,7 @@ class TemperatureConfiguration extends IPSModuleStrict
                             'name'    => 'Control',
                             'width'   => 'auto',
                             'add'     => 1,
-                            'edit'    => ['type' => 'SelectModule', 'moduleID' => self::CONTROL_MODULE]
+                            'edit'    => ['type' => 'SelectInstance']
                         ]
                     ]
                 ],
@@ -141,7 +151,7 @@ class TemperatureConfiguration extends IPSModuleStrict
             ],
             'status' => [
                 ['code' => self::STATUS_NO_ROOMS, 'icon' => 'error', 'caption' => 'Add at least one room.'],
-                ['code' => self::STATUS_CONTROLS, 'icon' => 'error', 'caption' => 'Each room needs a TemperatureControl instance.'],
+                ['code' => self::STATUS_CONTROLS, 'icon' => 'error', 'caption' => 'Each room needs a TemperatureControl instance. Rows marked in red point to another object.'],
                 ['code' => self::STATUS_LIMITS, 'icon' => 'error', 'caption' => 'Check the limits: from below to, a step above 0 and a gap of at least 0.']
             ]
         ]);

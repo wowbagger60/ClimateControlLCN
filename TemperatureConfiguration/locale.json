@@ -6,7 +6,7 @@
       "Cooling": "Kühlen",
       "Cooling at least above heating": "Kühlen mindestens über Heizen",
       "Cooling from": "Kühlen von",
-      "Each room needs a TemperatureControl instance.": "Jeder Raum braucht eine TemperatureControl-Instanz.",
+      "Each room needs a TemperatureControl instance. Rows marked in red point to another object.": "Jeder Raum braucht eine TemperatureControl-Instanz. Rot markierte Zeilen zeigen auf ein anderes Objekt.",
       "Heating": "Heizen",
       "Heating from": "Heizen von",
       "Limits": "Grenzen",

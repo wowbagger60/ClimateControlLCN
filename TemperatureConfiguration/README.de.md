@@ -16,7 +16,7 @@ Stellt die Sollwerte für Heizen und Kühlen eines oder mehrerer Räume in einer
 
 | Einstellung | Bedeutung |
 | --- | --- |
-| Räume | Name (optional) und die TemperatureControl-Instanz des Raums. Ohne Namen zeigt die Kachel den Namen der Instanz. |
+| Räume | Name (optional) und die TemperatureControl-Instanz des Raums, gewählt im Objektbaum. Nach dem Übernehmen sind Zeilen, die auf ein anderes Objekt zeigen, rot markiert, und die Instanz meldet einen Fehler. Ohne Namen zeigt die Kachel den Namen der Instanz. |
 | Heizen von / bis | Bereich des Heizen-Griffs, Standard 10–25 °C |
 | Kühlen von / bis | Bereich des Kühlen-Griffs, Standard 20–30 °C |
 | Kühlen mindestens über Heizen | Mindestabstand, Standard 1 °C |

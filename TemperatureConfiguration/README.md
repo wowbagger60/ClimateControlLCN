@@ -16,7 +16,7 @@ Sets the heating and cooling setpoints of one or more rooms in a tile.
 
 | Setting | Meaning |
 | --- | --- |
-| Rooms | Name (optional) and the TemperatureControl instance of the room. Without a name, the tile uses the name of the instance. |
+| Rooms | Name (optional) and the TemperatureControl instance of the room, chosen in the object tree. After applying, rows that point to another object are marked in red and the instance reports an error. Without a name, the tile uses the name of the instance. |
 | Heating from / to | Range of the heating handle, default 10–25 °C |
 | Cooling from / to | Range of the cooling handle, default 20–30 °C |
 | Cooling at least above heating | Minimum gap, default 1 °C |
