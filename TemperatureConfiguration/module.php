@@ -23,7 +23,7 @@ class TemperatureConfiguration extends IPSModuleStrict
         $this->RegisterPropertyFloat('HeatMin', 10.0);
         $this->RegisterPropertyFloat('HeatMax', 25.0);
         $this->RegisterPropertyFloat('CoolMin', 20.0);
-        $this->RegisterPropertyFloat('CoolMax', 28.0);
+        $this->RegisterPropertyFloat('CoolMax', 30.0);
         $this->RegisterPropertyFloat('Gap', 1.0);
         $this->RegisterPropertyFloat('Step', 0.5);
 

@@ -16,9 +16,9 @@ Sets the heating and cooling setpoints of one or more rooms in a tile.
 
 | Setting | Meaning |
 | --- | --- |
-| Setpoint pairs | Name (optional), heating variable, cooling variable. Without a name, the tile uses the name of the object above the heating variable. |
+| Setpoint pairs | Name (optional), heating variable, cooling variable. For the standard setpoints of a room, select "Standard heating" and "Standard cooling" of its TemperatureControl instance. Without a name, the tile uses the name of the object above the heating variable. |
 | Heating from / to | Range of the heating handle, default 10–25 °C |
-| Cooling from / to | Range of the cooling handle, default 20–28 °C |
+| Cooling from / to | Range of the cooling handle, default 20–30 °C |
 | Cooling at least above heating | Minimum gap, default 1 °C |
 | Step | Rounding and step of + and −, default 0.5 °C |
 

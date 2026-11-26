@@ -1,0 +1,204 @@
+<style>
+/* Symcon sets --accent-color, --content-color, --card-color, the font and body margins that leave room for the title. */
+#cctemp{position:fixed;container-type:size;color:var(--content-color,#222);-webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;--heat:#e8613f;--cool:#2196f3;--mode:var(--heat);
+  --track:color-mix(in srgb,var(--content-color,#222) 12%,transparent);display:flex;flex-direction:column}
+#cctemp.cool{--mode:var(--cool)}
+#cctemp.off{--mode:color-mix(in srgb,var(--content-color,#222) 30%,transparent)}
+#main{flex:1;min-height:0;display:grid;place-items:center}
+#box{position:relative;height:min(100%,100cqw);aspect-ratio:1}
+#arc{position:absolute;inset:0;width:100%;height:100%;touch-action:none;overflow:visible}
+#arc path{fill:none;stroke-width:7;stroke-linecap:round}
+#arc #track{stroke:var(--track)}
+#arc #fill{stroke:var(--mode)}
+#arc #tick{stroke:var(--content-color,#222);stroke-width:2;opacity:.55}
+#arc #room{fill:var(--content-color,#222);opacity:.55}
+#arc #knob{fill:var(--mode);stroke:var(--knob-ring,#fff);stroke-width:2.5;cursor:grab}
+#center{position:absolute;left:18%;right:18%;top:22%;bottom:22%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqmin;text-align:center}
+#lbl{font-size:4.2cqmin;text-transform:uppercase;letter-spacing:.06em;color:var(--mode)}
+#cctemp.off #lbl{color:inherit;opacity:.7;text-transform:none;letter-spacing:0}
+#val{font-size:13cqmin;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+#sub{font-size:4.2cqmin;opacity:.75;white-space:nowrap}
+.pm{display:flex;gap:12cqmin;margin-top:1cqmin}
+button{all:unset;cursor:pointer;color:inherit;box-sizing:border-box}
+button.step{width:9cqmin;height:9cqmin;min-width:28px;min-height:28px;display:grid;place-items:center;border-radius:50%;
+  font-size:7cqmin;line-height:1;border:1.5px solid color-mix(in srgb,currentColor 35%,transparent)}
+#auto{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);font-size:4.2cqmin;padding:1.2cqmin 4cqmin;border-radius:99px;
+  background:var(--mode);color:#fff;white-space:nowrap}
+#foot{display:flex;justify-content:center;gap:6cqw;font-size:clamp(11px,3.6cqmin,15px);opacity:.8;padding-top:1cqh;white-space:nowrap}
+#foot:empty{display:none}
+#message{position:absolute;z-index:1;left:4%;right:4%;bottom:0;text-align:center;font-size:clamp(10px,3.6cqw,13px);color:#c0392b;
+  background:var(--cctemp-base,#fff);border-radius:6px;padding:2px 4px}
+#invalid{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(11px,4cqw,16px);opacity:.7}
+[hidden]{display:none!important}
+</style>
+<div id="cctemp">
+  <div id="main"><div id="box">
+    <svg id="arc" viewBox="0 0 200 200" aria-hidden="true"><path id="track"/><path id="fill"/><path id="tick"/><circle id="room" r="3.5"/><circle id="knob" r="9"/></svg>
+    <div id="center">
+      <span id="lbl"></span>
+      <span id="val"></span>
+      <span id="sub"></span>
+      <div class="pm"><button class="step" data-d="-1">−</button><button class="step" data-d="1">+</button></div>
+    </div>
+    <button id="auto" hidden></button>
+  </div></div>
+  <div id="foot"></div>
+  <div id="invalid" hidden></div>
+  <div id="message" role="status" hidden></div>
+</div>
+<script>
+(() => {
+'use strict';
+let s = /*__STATE__*/{};
+const $ = id => document.getElementById(id);
+const root = $('cctemp'), arc = $('arc');
+const A0 = -135, A1 = 135, R = 80;
+let local = null;          // setpoint as shown while dragging or waiting to be sent
+let pendingSend = false, sendTimer = 0, holdTimer = 0, messageTimer = 0, shownMessage = s.messageId || 0, drag = false;
+const fmt = new Intl.NumberFormat(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+
+function fit() {
+  const st = getComputedStyle(document.body);
+  for (const k of ['Top', 'Bottom', 'Left', 'Right']) root.style[k.toLowerCase()] = st['margin' + k];
+}
+// The tile may be transparent: derive an opaque base from the text colour.
+function shade() {
+  const probe = document.createElement('span');
+  probe.style.color = 'var(--content-color, #222)';
+  document.body.append(probe);
+  const rgb = (getComputedStyle(probe).color.match(/[\d.]+/g) || [34, 34, 34]).map(Number);
+  probe.remove();
+  const light = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] > 128;
+  root.style.setProperty('--cctemp-base', light ? '#333438' : '#ffffff');
+  root.style.setProperty('--knob-ring', light ? '#333438' : '#ffffff');
+}
+
+const editable = () => s.valid && s.occupancy === 'A';
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const snap = v => clamp(Math.round(v / s.step) * s.step, s.min, s.max);
+const frac = v => clamp((v - s.min) / (s.max - s.min), 0, 1);
+const ang = v => A0 + frac(v) * (A1 - A0);
+function pt(a, r = R) { const t = a * Math.PI / 180; return [100 + r * Math.sin(t), 100 - r * Math.cos(t)]; }
+function arcPath(a, b) {
+  if (b - a < 0.01) return '';
+  const p = pt(a), q = pt(b);
+  return `M${p}A${R} ${R} 0 ${b - a > 180 ? 1 : 0} 1 ${q}`;
+}
+
+function send() {
+  clearTimeout(sendTimer);
+  pendingSend = false;
+  if (typeof requestAction === 'function') requestAction('Setpoint', local);
+  // Without confirmation the tile falls back to the variable.
+  clearTimeout(holdTimer);
+  holdTimer = setTimeout(() => { local = null; render(); }, 5000);
+}
+function sendLater() {
+  pendingSend = true;
+  clearTimeout(sendTimer);
+  sendTimer = setTimeout(send, 1200);
+}
+function step(d) {
+  if (!editable()) return;
+  local = snap((local ?? s.setpoint) + d * s.step);
+  render();
+  sendLater();
+}
+
+function valueAt(e) {
+  const r = arc.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * 200 - 100, y = (e.clientY - r.top) / r.height * 200 - 100;
+  let a = Math.atan2(x, -y) * 180 / Math.PI;
+  if (a > A1 || a < A0) a = a > 0 ? A1 : A0;
+  return s.min + (a - A0) / (A1 - A0) * (s.max - s.min);
+}
+arc.addEventListener('pointerdown', e => {
+  if (!editable()) return;
+  drag = true;
+  arc.setPointerCapture(e.pointerId);
+  local = snap(valueAt(e));
+  render();
+});
+arc.addEventListener('pointermove', e => { if (drag) { local = snap(valueAt(e)); render(); } });
+const up = () => { if (drag) { drag = false; send(); } };
+arc.addEventListener('pointerup', up);
+arc.addEventListener('pointercancel', up);
+root.querySelectorAll('.pm button').forEach(b => b.addEventListener('click', () => step(+b.dataset.d)));
+$('auto').addEventListener('click', () => {
+  if (typeof requestAction === 'function') requestAction('Auto', true);
+});
+
+function render() {
+  const t = s.texts || {};
+  $('invalid').hidden = !!s.valid;
+  $('main').hidden = !s.valid;
+  $('invalid').textContent = t.invalid || '';
+  if (!s.valid) { $('foot').textContent = ''; return; }
+
+  const on = editable();
+  const v = local ?? s.setpoint;
+  root.classList.toggle('cool', s.mode === 'cool');
+  root.classList.toggle('off', !on);
+
+  $('track').setAttribute('d', arcPath(A0, A1));
+  $('fill').setAttribute('d', on ? arcPath(A0, ang(v)) : '');
+  const k = pt(ang(v));
+  $('knob').setAttribute('cx', k[0]); $('knob').setAttribute('cy', k[1]);
+  $('knob').style.display = on ? '' : 'none';
+  // Standard setpoint: short tick across the track.
+  const a = ang(s.standard), p = pt(a, R - 9), q = pt(a, R + 9);
+  $('tick').setAttribute('d', on ? `M${p}L${q}` : '');
+  // Room temperature: dot inside the track.
+  const inRange = s.temperature >= s.min && s.temperature <= s.max;
+  const r = pt(ang(s.temperature), R - 16);
+  $('room').setAttribute('cx', r[0]); $('room').setAttribute('cy', r[1]);
+  $('room').style.display = on && inRange ? '' : 'none';
+
+  if (on) {
+    $('lbl').textContent = (s.mode === 'cool' ? t.cool : t.heat) + (s.manual ? ' · ' + t.manual : '');
+    $('val').textContent = fmt.format(v) + ' °C';
+    $('sub').textContent = t.room + ' ' + fmt.format(s.temperature) + ' °C';
+  } else {
+    $('lbl').textContent = s.occupancy === 'B' ? t.occupied : t.unoccupied;
+    $('val').textContent = fmt.format(s.temperature) + ' °C';
+    $('sub').textContent = '';
+  }
+  root.querySelector('.pm').hidden = !on;
+  const auto = $('auto');
+  auto.hidden = !(on && s.manual);
+  auto.textContent = t.auto + ' · ' + fmt.format(s.standard) + ' °C';
+
+  const foot = [];
+  if (s.humidity !== null && s.humidity !== undefined) foot.push(t.humidity + ' ' + s.humidity);
+  if (s.airQuality !== null && s.airQuality !== undefined) foot.push(t.airQuality + ' ' + s.airQuality);
+  $('foot').textContent = foot.join('   ·   ');
+}
+
+function showMessage() {
+  const m = $('message');
+  if (!s.message || (s.messageId || 0) === shownMessage) return;
+  shownMessage = s.messageId;
+  m.textContent = s.message;
+  m.hidden = false;
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => { m.hidden = true; }, 6000);
+}
+
+window.handleMessage = data => {
+  try {
+    s = typeof data === 'string' ? JSON.parse(data) : data;
+    // Keep an edit that is still being dragged or waiting to be sent; otherwise follow the variable.
+    if (!drag && !pendingSend && (local === null || Math.abs(local - s.setpoint) < 0.01)) { clearTimeout(holdTimer); local = null; }
+    render();
+    showMessage();
+  } catch (e) {}
+};
+
+window.addEventListener('resize', fit);
+window.addEventListener('load', () => { fit(); shade(); });
+fit();
+shade();
+render();
+})();
+</script>

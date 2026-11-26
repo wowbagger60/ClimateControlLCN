@@ -1,0 +1,14 @@
+{
+  "id": "{2A8D82A8-9ED2-4717-A15A-72A8D7037635}",
+  "name": "TemperatureControl",
+  "type": 3,
+  "vendor": "Cassanis Automation",
+  "url": "https://github.com/wowbagger60/ClimateControlLCN/blob/main/TemperatureControl/README.md",
+  "aliases": [
+    "Temperature Control"
+  ],
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "CCTEMP"
+}

@@ -16,9 +16,9 @@ Stellt die Sollwerte für Heizen und Kühlen eines oder mehrerer Räume in einer
 
 | Einstellung | Bedeutung |
 | --- | --- |
-| Sollwert-Paare | Name (optional), Variable Heizen, Variable Kühlen. Ohne Namen zeigt die Kachel den Namen des Objekts über der Heizen-Variable. |
+| Sollwert-Paare | Name (optional), Variable Heizen, Variable Kühlen. Für die Standard-Sollwerte eines Raums „Standard Heizen“ und „Standard Kühlen“ der TemperatureControl-Instanz wählen. Ohne Namen zeigt die Kachel den Namen des Objekts über der Heizen-Variable. |
 | Heizen von / bis | Bereich des Heizen-Griffs, Standard 10–25 °C |
-| Kühlen von / bis | Bereich des Kühlen-Griffs, Standard 20–28 °C |
+| Kühlen von / bis | Bereich des Kühlen-Griffs, Standard 20–30 °C |
 | Kühlen mindestens über Heizen | Mindestabstand, Standard 1 °C |
 | Schritt | Rundung und Schritt von + und −, Standard 0,5 °C |
 
