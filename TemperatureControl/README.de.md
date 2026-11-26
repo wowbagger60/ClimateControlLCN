@@ -13,7 +13,7 @@ Raumthermostat für ein LCN-Klimamodul nach Vorlage „Klima 1.3“: Regler 1 he
 - Eine Änderung wirkt wie T± am Taster. Der Raum geht auf manu (Neu laden gesperrt), und der Sollwert wird live gesetzt, nicht in ein Register.
 - Im Handbetrieb erscheint der Knopf **Auto**. Er beendet den Handbetrieb, und der Raum lädt sein Register neu.
 - Bei ABU B (belegt, Klima aus) oder U (unbelegt) lässt sich nichts einstellen. Der Bogen ist dann grau, ohne Griff und Knöpfe.
-- Feuchte und Luftqualität erscheinen unten mit einem Symbol, wenn Variablen dafür gewählt sind. Gezeigt wird ihr formatierter Wert.
+- Feuchte (mit Tropfen) und Luftqualität erscheinen unten, wenn Variablen dafür gewählt sind. Gezeigt wird ihr formatierter Wert.
 - Ein ABU-Wechsel, ein Reset oder ein Stromausfall beenden den Handbetrieb (in LCN programmiert). Bei einem Gastwechsel ABU deshalb zuerst auf U und danach auf A oder B setzen.
 
 **Standard-Sollwerte (Konfiguration):**

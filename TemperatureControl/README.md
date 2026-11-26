@@ -13,7 +13,7 @@ Room thermostat for an LCN climate module built on the "Klima 1.3" template: reg
 - A change acts like T± on the wall key. The room switches to manual (reload locked) and the setpoint is set live, not into a register.
 - In manual the **Auto** button appears. It ends manual and the room reloads its register.
 - With occupancy B (occupied, climate off) or U (unoccupied) nothing can be set. The arc is then grey, without handle and buttons.
-- Humidity and air quality appear at the bottom with an icon when variables are selected. The tile shows their formatted value.
+- Humidity (with a drop) and air quality appear at the bottom when variables are selected. The tile shows their formatted value.
 - An occupancy change, a reset or a power failure ends manual (programmed in LCN). On a guest change, set the occupancy to U first and then to A or B.
 
 **Standard setpoints (configuration):**
