@@ -7,7 +7,7 @@ Raumthermostat für ein LCN-Klimamodul nach Vorlage „Klima 1.3“: Regler 1 he
 **Kachel (für alle):**
 
 - Aufbau wie Symcons Thermostat: oben die Raumtemperatur, in der Mitte gross der Sollwert, darunter − und +.
-- Der Bogen hat einen Farbverlauf von Blau (unten) nach Rot (oben) und einen Punkt pro 0,5 °C. Beim Heizen ist er vom unteren Ende bis zum Griff farbig, beim Kühlen vom oberen Ende bis zum Griff, der Rest ist grau. Eine kleine Marke aussen zeigt den Standard-Sollwert.
+- Der Bogen hat einen Farbverlauf von Blau (unten) nach Rot (oben) und einen Punkt pro Grad. Beim Heizen ist er vom unteren Ende bis zum Griff farbig, beim Kühlen vom oberen Ende bis zum Griff, der Rest ist grau. Eine kleine Marke aussen zeigt den Standard-Sollwert.
 - Ein Tipp auf die Raumtemperatur öffnet das eingestellte Ziel, zum Beispiel die Temperatur-Historie.
 - Griff ziehen oder − und + drücken. Gesendet wird beim Loslassen oder 1,2 s nach dem letzten + oder −.
 - Eine Änderung wirkt wie T± am Taster. Der Raum geht auf manu (Neu laden gesperrt), und der Sollwert wird live gesetzt, nicht in ein Register.

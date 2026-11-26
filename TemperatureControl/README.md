@@ -7,7 +7,7 @@ Room thermostat for an LCN climate module built on the "Klima 1.3" template: reg
 **Tile (for everyone):**
 
 - Layout as in Symcon's thermostat: room temperature at the top, the setpoint large in the middle, − and + below.
-- The arc has a gradient from blue (low) to red (high) and one dot per 0.5 °C. When heating it is coloured from the low end up to the handle, when cooling from the high end down to the handle; the rest is grey. A small mark outside shows the standard setpoint.
+- The arc has a gradient from blue (low) to red (high) and one dot per degree. When heating it is coloured from the low end up to the handle, when cooling from the high end down to the handle; the rest is grey. A small mark outside shows the standard setpoint.
 - A tap on the room temperature opens the configured target, for example the temperature history.
 - Drag the handle or press − and +. The value is sent on release or 1.2 s after the last + or −.
 - A change acts like T± on the wall key. The room switches to manual (reload locked) and the setpoint is set live, not into a register.

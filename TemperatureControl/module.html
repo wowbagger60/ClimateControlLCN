@@ -11,10 +11,10 @@
 #arc .dot.off{fill:var(--content-color,#222);opacity:.22}
 #arc #tick{stroke:var(--content-color,#222);stroke-width:2;opacity:.5;stroke-linecap:round}
 #arc #knob{stroke:var(--knob-ring,#fff);stroke-width:2.5;cursor:grab}
-#center{position:absolute;left:18%;right:18%;top:24%;bottom:24%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqmin}
-#room{display:flex;align-items:center;gap:.8cqmin;font-size:7cqmin;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+#center{position:absolute;left:16%;right:16%;top:22%;bottom:24%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqmin}
+#room{display:flex;align-items:center;gap:.8cqmin;font-size:9cqmin;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
 #room.link{cursor:pointer}
-#room svg{width:6cqmin;height:6cqmin;flex:none}
+#room svg{width:8cqmin;height:8cqmin;flex:none}
 #val{font-size:13cqmin;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
 #cctemp.off #val{opacity:.45}
 .pm{display:flex;gap:12cqmin;margin-top:1.5cqmin}
@@ -23,9 +23,9 @@ button.step{width:9cqmin;height:9cqmin;min-width:28px;min-height:28px;display:gr
   font-size:6cqmin;line-height:1;border:1.5px solid color-mix(in srgb,currentColor 35%,transparent)}
 #auto{font-size:4cqmin;padding:1cqmin 3.5cqmin;border-radius:99px;margin-top:1.5cqmin;white-space:nowrap;
   border:1.5px solid color-mix(in srgb,currentColor 35%,transparent)}
-#foot{position:absolute;left:24%;right:24%;bottom:6%;display:flex;justify-content:center;gap:5cqmin;font-size:4.2cqmin;opacity:.8;white-space:nowrap}
+#foot{position:absolute;left:20%;right:20%;bottom:5%;display:flex;justify-content:center;gap:6cqmin;font-size:max(12px,6cqmin);opacity:.85;white-space:nowrap}
 #foot span{display:flex;align-items:center;gap:.8cqmin}
-#foot svg{width:4.4cqmin;height:4.4cqmin;flex:none}
+#foot svg{width:1.05em;height:1.05em;flex:none}
 #message{position:absolute;z-index:1;left:4%;right:4%;bottom:0;text-align:center;font-size:clamp(10px,3.6cqw,13px);color:#c0392b;
   background:var(--cctemp-base,#fff);border-radius:6px;padding:2px 4px}
 #invalid{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(11px,4cqw,16px);opacity:.7}
@@ -53,8 +53,8 @@ const NS = 'http://www.w3.org/2000/svg';
 const $ = id => document.getElementById(id);
 const root = $('cctemp'), arc = $('arc');
 const A0 = -135, A1 = 135, R = 80;
-// Gradient along the scale as in Symcon's thermostat: blue at the low end, red at the high end.
-const BLUE = [33, 166, 240], RED = [244, 74, 47];
+// Gradient along the scale as in Symcon's thermostat: blue, a light violet in the middle, then a clear orange red.
+const STOPS = [[0, [35, 166, 242]], [0.5, [167, 154, 166]], [0.72, [255, 87, 51]], [1, [255, 87, 51]]];
 const ICONS = {
   humidity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.5s-6 6.6-6 10.6a6 6 0 0 0 12 0c0-4-6-10.6-6-10.6z"/></svg>',
   air: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/></svg>'
@@ -84,7 +84,13 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const snap = v => clamp(Math.round(v / s.step) * s.step, s.min, s.max);
 const frac = v => clamp((v - s.min) / (s.max - s.min), 0, 1);
 const ang = v => A0 + frac(v) * (A1 - A0);
-const color = f => 'rgb(' + BLUE.map((b, i) => Math.round(b + (RED[i] - b) * f)).join(',') + ')';
+function color(f) {
+  f = clamp(f, 0, 1);
+  let i = 1;
+  while (i < STOPS.length - 1 && f > STOPS[i][0]) i++;
+  const [f0, c0] = STOPS[i - 1], [f1, c1] = STOPS[i], u = (f - f0) / (f1 - f0);
+  return 'rgb(' + c0.map((c, k) => Math.round(c + (c1[k] - c) * u)).join(',') + ')';
+}
 function pt(a, r = R) { const t = a * Math.PI / 180; return [100 + r * Math.sin(t), 100 - r * Math.cos(t)]; }
 function arcPath(a, b) {
   if (b - a < 0.01) return '';
@@ -141,14 +147,13 @@ $('room').addEventListener('click', () => {
   if (Number.isInteger(s.target) && s.target > 1 && typeof openObject === 'function') openObject(s.target);
 });
 
-// One dot per step (0.5 °C); rebuilt only when the scale changes.
+// One dot per whole degree; rebuilt only when the scale changes.
 function buildDots() {
   const g = $('dots');
   g.textContent = '';
-  const n = Math.round((s.max - s.min) / s.step);
-  for (let i = 0; i <= n; i++) {
-    const q = pt(ang(s.min + i * s.step));
-    g.append(node('circle', {cx: q[0].toFixed(2), cy: q[1].toFixed(2), r: 1.5, class: 'dot'}));
+  for (let v = Math.ceil(s.min); v <= s.max + 0.001; v++) {
+    const q = pt(ang(v));
+    g.append(node('circle', {cx: q[0].toFixed(2), cy: q[1].toFixed(2), r: 1.5, class: 'dot', 'data-v': v}));
   }
 }
 
@@ -185,8 +190,8 @@ function render() {
   $('track').setAttribute('d', arcPath(A0, A1));
   if (on) renderFill(cool ? a : A0, cool ? A1 : a); else renderFill(0, 0);
   // Dots: light on the coloured part, dark on the grey part.
-  [...$('dots').children].forEach((d, i) => {
-    const da = ang(s.min + i * s.step);
+  [...$('dots').children].forEach(d => {
+    const da = ang(+d.dataset.v);
     d.classList.toggle('off', !on || (cool ? da < a - 0.01 : da > a + 0.01));
   });
   const k = pt(a);
