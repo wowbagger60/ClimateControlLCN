@@ -18,7 +18,7 @@ Room thermostat for an LCN climate module built on the "Klima 1.3" template: reg
 
 **Standard setpoints (configuration):**
 
-- The variables **Standard heating** and **Standard cooling** belong to the instance. They live in register set 1 of both regulators. Edit them, for example, with TemperatureConfiguration.
+- The variables **Standard heating** and **Standard cooling** belong to the instance. They live in register set 1 of both regulators. Edit them, for example, with TemperatureConfiguration (select this instance there).
 - LCN can only store the current setpoint. The instance therefore sets it, reads it back and stores it with the store key (lang).
 - Afterwards it restores the room:
   - **auto:** the store key reloads the register itself. With occupancy A the new standard applies at once, with B and U the protection value again.

@@ -1,27 +1,25 @@
 {
   "translations": {
     "de": {
-      "A setpoint could not be written.": "Ein Sollwert konnte nicht geschrieben werden.",
-      "Add at least one setpoint pair.": "Mindestens ein Sollwert-Paar hinzufügen.",
+      "Add at least one room.": "Mindestens einen Raum hinzufügen.",
       "Check the limits: from below to, a step above 0 and a gap of at least 0.": "Grenzen prüfen: von kleiner als bis, Schritt grösser als 0, Abstand mindestens 0.",
       "Cooling": "Kühlen",
       "Cooling at least above heating": "Kühlen mindestens über Heizen",
       "Cooling from": "Kühlen von",
-      "Cooling setpoint": "Sollwert Kühlen",
-      "Each pair needs two float variables.": "Jedes Paar braucht zwei Float-Variablen.",
+      "Each room needs a TemperatureControl instance.": "Jeder Raum braucht eine TemperatureControl-Instanz.",
       "Heating": "Heizen",
       "Heating from": "Heizen von",
-      "Heating setpoint": "Sollwert Heizen",
       "Limits": "Grenzen",
       "Name": "Name",
       "Not configured": "Nicht konfiguriert",
-      "Pair %d does not exist.": "Paar %d gibt es nicht.",
-      "Setpoint pairs": "Sollwert-Paare",
+      "Room %d does not exist.": "Raum %d gibt es nicht.",
+      "Rooms": "Räume",
       "Step": "Schritt",
       "The instance is not configured correctly.": "Die Instanz ist nicht richtig konfiguriert.",
       "The setpoints are outside the limits.": "Die Sollwerte liegen ausserhalb der Grenzen.",
-      "Without a name, the tile shows the name of the object above the heating variable.": "Ohne Namen zeigt die Kachel den Namen des Objekts über der Heizen-Variable.",
-      "to": "bis"
+      "The setpoints could not be set.": "Die Sollwerte konnten nicht gesetzt werden.",
+      "to": "bis",
+      "Without a name, the tile shows the name of the TemperatureControl instance.": "Ohne Namen zeigt die Kachel den Namen der TemperatureControl-Instanz."
     }
   }
 }

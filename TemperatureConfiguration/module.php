@@ -5,21 +5,23 @@ declare(strict_types=1);
 /**
  * Sets the heating and cooling setpoints of one or more rooms.
  *
- * The instance holds no values of its own: each pair points to two float variables (later the setpoint
- * variables of TemperatureControl). Several instances may show the same pair; every instance follows
- * the variables and refreshes its tile on each change.
+ * The instance holds no values of its own: each room points to a TemperatureControl instance and shows its
+ * standard setpoints (variables DefaultHeat and DefaultCool). Changes go through CCTEMP_SetDefaults, which
+ * stores them in register set 1. Several instances may show the same room; every instance follows the
+ * variables and refreshes its tile on each change.
  */
 class TemperatureConfiguration extends IPSModuleStrict
 {
-    private const STATUS_NO_PAIRS = 201;
-    private const STATUS_VARIABLES = 202;
+    private const STATUS_NO_ROOMS = 201;
+    private const STATUS_CONTROLS = 202;
+    private const CONTROL_MODULE = '{2A8D82A8-9ED2-4717-A15A-72A8D7037635}';
     private const STATUS_LIMITS = 203;
 
     public function Create(): void
     {
         parent::Create();
 
-        $this->RegisterPropertyString('Pairs', '[]');
+        $this->RegisterPropertyString('Rooms', '[]');
         $this->RegisterPropertyFloat('HeatMin', 10.0);
         $this->RegisterPropertyFloat('HeatMax', 25.0);
         $this->RegisterPropertyFloat('CoolMin', 20.0);
@@ -52,9 +54,9 @@ class TemperatureConfiguration extends IPSModuleStrict
         $status = $this->validate();
         $this->SetStatus($status);
         if ($status === IS_ACTIVE) {
-            foreach ($this->pairs() as $pair) {
-                foreach ([$pair['Heat'], $pair['Cool']] as $variable) {
-                    $this->RegisterReference($variable);
+            foreach ($this->rooms() as $room) {
+                $this->RegisterReference($room['Control']);
+                foreach ([$room['Heat'], $room['Cool']] as $variable) {
                     $this->RegisterMessage($variable, VM_UPDATE);
                 }
             }
@@ -78,7 +80,7 @@ class TemperatureConfiguration extends IPSModuleStrict
         if ($Ident === 'Set') {
             $data = json_decode((string) $Value, true);
             if (is_array($data) && isset($data['pair'], $data['heat'], $data['cool'])) {
-                $this->SetPair((int) $data['pair'], (float) $data['heat'], (float) $data['cool']);
+                $this->SetRoom((int) $data['pair'], (float) $data['heat'], (float) $data['cool']);
                 return;
             }
         }
@@ -91,8 +93,8 @@ class TemperatureConfiguration extends IPSModuleStrict
             'elements' => [
                 [
                     'type'     => 'List',
-                    'name'     => 'Pairs',
-                    'caption'  => 'Setpoint pairs',
+                    'name'     => 'Rooms',
+                    'caption'  => 'Rooms',
                     'add'      => true,
                     'delete'   => true,
                     'changeOrder' => true,
@@ -106,24 +108,17 @@ class TemperatureConfiguration extends IPSModuleStrict
                             'edit'    => ['type' => 'ValidationTextBox']
                         ],
                         [
-                            'caption' => 'Heating setpoint',
-                            'name'    => 'Heat',
+                            'caption' => 'TemperatureControl',
+                            'name'    => 'Control',
                             'width'   => 'auto',
                             'add'     => 1,
-                            'edit'    => ['type' => 'SelectVariable', 'validVariableTypes' => [VARIABLETYPE_FLOAT]]
-                        ],
-                        [
-                            'caption' => 'Cooling setpoint',
-                            'name'    => 'Cool',
-                            'width'   => 'auto',
-                            'add'     => 1,
-                            'edit'    => ['type' => 'SelectVariable', 'validVariableTypes' => [VARIABLETYPE_FLOAT]]
+                            'edit'    => ['type' => 'SelectModule', 'moduleID' => self::CONTROL_MODULE]
                         ]
                     ]
                 ],
                 [
                     'type'    => 'Label',
-                    'caption' => 'Without a name, the tile shows the name of the object above the heating variable.'
+                    'caption' => 'Without a name, the tile shows the name of the TemperatureControl instance.'
                 ],
                 [
                     'type'    => 'ExpansionPanel',
@@ -145,8 +140,8 @@ class TemperatureConfiguration extends IPSModuleStrict
                 ]
             ],
             'status' => [
-                ['code' => self::STATUS_NO_PAIRS, 'icon' => 'error', 'caption' => 'Add at least one setpoint pair.'],
-                ['code' => self::STATUS_VARIABLES, 'icon' => 'error', 'caption' => 'Each pair needs two float variables.'],
+                ['code' => self::STATUS_NO_ROOMS, 'icon' => 'error', 'caption' => 'Add at least one room.'],
+                ['code' => self::STATUS_CONTROLS, 'icon' => 'error', 'caption' => 'Each room needs a TemperatureControl instance.'],
                 ['code' => self::STATUS_LIMITS, 'icon' => 'error', 'caption' => 'Check the limits: from below to, a step above 0 and a gap of at least 0.']
             ]
         ]);
@@ -160,16 +155,16 @@ class TemperatureConfiguration extends IPSModuleStrict
 
     // Public API ---------------------------------------------------------------------------------------
 
-    /** Writes the setpoints of pair 0-N. Values are rounded to the step and must respect the limits and the gap. */
-    public function SetPair(int $Pair, float $Heat, float $Cool): bool
+    /** Sets the standard setpoints of room 0-N. Values are rounded to the step and must respect the limits and the gap. */
+    public function SetRoom(int $Room, float $Heat, float $Cool): bool
     {
         if ($this->GetStatus() !== IS_ACTIVE) {
             $this->showMessage($this->Translate('The instance is not configured correctly.'));
             return false;
         }
-        $pairs = $this->pairs();
-        if (!isset($pairs[$Pair])) {
-            $this->showMessage(sprintf($this->Translate('Pair %d does not exist.'), $Pair));
+        $rooms = $this->rooms();
+        if (!isset($rooms[$Room])) {
+            $this->showMessage(sprintf($this->Translate('Room %d does not exist.'), $Room));
             return false;
         }
         $limits = $this->limits();
@@ -178,44 +173,42 @@ class TemperatureConfiguration extends IPSModuleStrict
         if ($heat < $limits['heatMin'] || $heat > $limits['heatMax'] || $cool < $limits['coolMin'] || $cool > $limits['coolMax']
             || $cool < $heat + $limits['gap'] - 0.001) {
             $this->showMessage($this->Translate('The setpoints are outside the limits.'));
-            $this->pushState();
             return false;
         }
 
-        $ok = true;
-        foreach (['Heat' => $heat, 'Cool' => $cool] as $key => $value) {
-            $variable = $pairs[$Pair][$key];
-            if (abs(GetValueFloat($variable) - $value) < 0.001) {
-                continue;
-            }
-            $ok = $this->write($variable, $value) && $ok;
-        }
+        // TemperatureControl sets both variables at once and stores the changed ones in LCN a moment later.
+        $this->SendDebug('Set', $rooms[$Room]['Control'] . ': ' . $heat . ' / ' . $cool, 0);
+        $ok = CCTEMP_SetDefaults($rooms[$Room]['Control'], $heat, $cool);
         if (!$ok) {
-            $this->showMessage($this->Translate('A setpoint could not be written.'));
+            $this->showMessage($this->Translate('The setpoints could not be set.'));
         }
         $this->pushState();
         return $ok;
     }
 
-    /** Returns the configured pairs with names and current values as JSON. */
-    public function GetPairs(): string
+    /** Returns the configured rooms with names and current values as JSON. */
+    public function GetRooms(): string
     {
         return json_encode($this->tileState()['pairs']);
     }
 
     // Helpers -------------------------------------------------------------------------------------------
 
-    private function pairs(): array
+    // Rooms with the variable IDs of their TemperatureControl instance (0 if missing).
+    private function rooms(): array
     {
-        $pairs = [];
-        foreach (json_decode($this->ReadPropertyString('Pairs'), true) ?: [] as $row) {
-            $pairs[] = [
+        $rooms = [];
+        foreach (json_decode($this->ReadPropertyString('Rooms'), true) ?: [] as $row) {
+            $control = (int) ($row['Control'] ?? 0);
+            $valid = IPS_InstanceExists($control) && IPS_GetInstance($control)['ModuleInfo']['ModuleID'] === self::CONTROL_MODULE;
+            $rooms[] = [
                 'Caption' => trim((string) ($row['Caption'] ?? '')),
-                'Heat'    => (int) ($row['Heat'] ?? 0),
-                'Cool'    => (int) ($row['Cool'] ?? 0)
+                'Control' => $control,
+                'Heat'    => $valid ? (int) @IPS_GetObjectIDByIdent('DefaultHeat', $control) : 0,
+                'Cool'    => $valid ? (int) @IPS_GetObjectIDByIdent('DefaultCool', $control) : 0
             ];
         }
-        return $pairs;
+        return $rooms;
     }
 
     private function limits(): array
@@ -232,15 +225,13 @@ class TemperatureConfiguration extends IPSModuleStrict
 
     private function validate(): int
     {
-        $pairs = $this->pairs();
-        if (count($pairs) === 0) {
-            return self::STATUS_NO_PAIRS;
+        $rooms = $this->rooms();
+        if (count($rooms) === 0) {
+            return self::STATUS_NO_ROOMS;
         }
-        foreach ($pairs as $pair) {
-            foreach ([$pair['Heat'], $pair['Cool']] as $variable) {
-                if (!IPS_VariableExists($variable) || IPS_GetVariable($variable)['VariableType'] !== VARIABLETYPE_FLOAT) {
-                    return self::STATUS_VARIABLES;
-                }
+        foreach ($rooms as $room) {
+            if ($room['Heat'] === 0 || $room['Cool'] === 0) {
+                return self::STATUS_CONTROLS;
             }
         }
         $l = $this->limits();
@@ -255,35 +246,20 @@ class TemperatureConfiguration extends IPSModuleStrict
         return round(round($value / $step) * $step, 2);
     }
 
-    // Variables with an action (for example the setpoint variables of TemperatureControl) go through the action,
-    // so their owner writes the value to LCN. Plain variables are set directly.
-    private function write(int $variable, float $value): bool
+    private function roomName(array $room): string
     {
-        $info = IPS_GetVariable($variable);
-        $this->SendDebug('Write', $variable . ' = ' . $value, 0);
-        if ($info['VariableCustomAction'] > 1 || ($info['VariableCustomAction'] === 0 && $info['VariableAction'] > 1)) {
-            return RequestAction($variable, $value);
-        }
-        return SetValueFloat($variable, $value);
-    }
-
-    private function pairName(array $pair): string
-    {
-        if ($pair['Caption'] !== '') {
-            return $pair['Caption'];
-        }
-        return IPS_ObjectExists($pair['Heat']) ? IPS_GetName(IPS_GetParent($pair['Heat'])) : '';
+        return $room['Caption'] !== '' ? $room['Caption'] : IPS_GetName($room['Control']);
     }
 
     private function tileState(): array
     {
         $pairs = [];
         if ($this->GetStatus() === IS_ACTIVE) {
-            foreach ($this->pairs() as $pair) {
+            foreach ($this->rooms() as $room) {
                 $pairs[] = [
-                    'name' => $this->pairName($pair),
-                    'heat' => GetValueFloat($pair['Heat']),
-                    'cool' => GetValueFloat($pair['Cool'])
+                    'name' => $this->roomName($room),
+                    'heat' => GetValueFloat($room['Heat']),
+                    'cool' => GetValueFloat($room['Cool'])
                 ];
             }
         }

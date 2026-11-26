@@ -18,7 +18,7 @@ Raumthermostat für ein LCN-Klimamodul nach Vorlage „Klima 1.3“: Regler 1 he
 
 **Standard-Sollwerte (Konfiguration):**
 
-- Die Variablen **Standard Heizen** und **Standard Kühlen** gehören der Instanz. Sie stehen in Registersatz 1 der beiden Regler. Bearbeitet werden sie zum Beispiel mit TemperatureConfiguration.
+- Die Variablen **Standard Heizen** und **Standard Kühlen** gehören der Instanz. Sie stehen in Registersatz 1 der beiden Regler. Bearbeitet werden sie zum Beispiel mit TemperatureConfiguration (dort diese Instanz wählen).
 - LCN speichert nur den aktuellen Sollwert. Die Instanz setzt ihn deshalb, liest ihn zurück und speichert ihn mit der Speichertaste (lang).
 - Danach stellt sie den Raum wieder her:
   - **auto:** Die Speichertaste lädt das Register selbst neu. Bei ABU A gilt sofort der neue Standard, bei B und U wieder der Schutzwert.
