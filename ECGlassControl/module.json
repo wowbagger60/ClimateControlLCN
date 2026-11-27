@@ -1,0 +1,14 @@
+{
+  "id": "{F99F1FA9-10E6-4F8F-AE7B-250259FEF709}",
+  "name": "ECGlassControl",
+  "type": 3,
+  "vendor": "Cassanis Automation",
+  "url": "https://github.com/wowbagger60/ClimateControlLCN/blob/main/ECGlassControl/README.md",
+  "aliases": [
+    "EC Glass Control"
+  ],
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "CCECG"
+}

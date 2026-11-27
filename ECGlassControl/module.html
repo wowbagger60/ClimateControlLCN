@@ -1,0 +1,228 @@
+<style>
+/* Symcon sets --accent-color, --content-color, --card-color, the font and body margins that leave room for the title. */
+/* Symcon's own tiles show values in the light cut of its font; the body default (400) looks bold next to them. */
+#ccecg{position:fixed;container-type:size;color:var(--content-color,#222);font-weight:300;-webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;display:grid;place-items:center;
+  --track:color-mix(in srgb,var(--content-color,#222) 12%,transparent)}
+#box{position:relative;width:min(100cqw,100cqh);aspect-ratio:1}
+#arc{position:absolute;inset:0;width:100%;height:100%;touch-action:none;overflow:visible}
+#arc path{fill:none;stroke-width:7}
+#arc #track{stroke:var(--track);stroke-linecap:round}
+#arc .dot{fill:#fff;opacity:.75}
+#arc .dot.dark{fill:#24384f;opacity:.45}
+#arc .dot.off{fill:var(--content-color,#222);opacity:.22}
+#arc #knob{stroke:var(--knob-ring,#fff);stroke-width:2.5;cursor:grab}
+#center{position:absolute;left:15%;right:15%;top:20%;bottom:22%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqmin}
+#val{font-size:13cqmin;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pm{display:flex;gap:12cqmin;margin-top:1.5cqmin}
+button{all:unset;cursor:pointer;color:inherit;box-sizing:border-box}
+button.step{width:9cqmin;height:9cqmin;min-width:28px;min-height:28px;display:grid;place-items:center;border-radius:50%;
+  font-size:6cqmin;line-height:1;border:1.5px solid color-mix(in srgb,currentColor 35%,transparent)}
+button.step:disabled{opacity:.3;cursor:default}
+/* Auto: a filled pill shows that the automation is active; an outlined pill switches back to it. */
+#auto{font-size:4cqmin;padding:1cqmin 3.5cqmin;border-radius:99px;margin-top:1.5cqmin;white-space:nowrap;
+  border:1.5px solid color-mix(in srgb,currentColor 35%,transparent)}
+#auto.on{cursor:default;border-color:transparent;background:color-mix(in srgb,currentColor 12%,transparent)}
+#message{position:absolute;z-index:1;left:4%;right:4%;bottom:0;text-align:center;font-size:clamp(10px,3.6cqw,13px);color:#c0392b;
+  background:var(--ccecg-base,#fff);border-radius:6px;padding:2px 4px}
+#invalid{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(11px,4cqw,16px);opacity:.7}
+[hidden]{display:none!important}
+</style>
+<div id="ccecg">
+  <div id="box">
+    <svg id="arc" viewBox="0 0 200 200" aria-hidden="true"><path id="track"/><g id="fill"></g><g id="dots"></g><circle id="knob" r="12"/></svg>
+    <div id="center">
+      <span id="val"></span>
+      <div class="pm"><button class="step" data-d="-1">−</button><button class="step" data-d="1">+</button></div>
+      <button id="auto"></button>
+    </div>
+  </div>
+  <div id="invalid" hidden></div>
+  <div id="message" role="status" hidden></div>
+</div>
+<script>
+(() => {
+'use strict';
+let s = /*__STATE__*/{};
+const NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const root = $('ccecg'), arc = $('arc');
+const A0 = -135, A1 = 135, R = 86, MIN = 0, MAX = 100;
+// From clear glass (light sky blue) to fully tinted (dark slate blue).
+const STOPS = [[0, [178, 216, 240]], [0.5, [92, 140, 186]], [1, [36, 56, 88]]];
+let local = null;          // tint as shown while dragging or waiting to be sent
+let pendingSend = false, sendTimer = 0, holdTimer = 0, messageTimer = 0, shownMessage = s.messageId || 0, drag = false, built = false;
+
+function fit() {
+  const st = getComputedStyle(document.body);
+  for (const k of ['Top', 'Bottom', 'Left', 'Right']) root.style[k.toLowerCase()] = st['margin' + k];
+}
+// The tile may be transparent: derive an opaque base from the text colour.
+function shade() {
+  const probe = document.createElement('span');
+  probe.style.color = 'var(--content-color, #222)';
+  document.body.append(probe);
+  const rgb = (getComputedStyle(probe).color.match(/[\d.]+/g) || [34, 34, 34]).map(Number);
+  probe.remove();
+  const light = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] > 128;
+  root.style.setProperty('--ccecg-base', light ? '#333438' : '#ffffff');
+  root.style.setProperty('--knob-ring', light ? '#333438' : '#ffffff');
+}
+
+const step = () => s.step || 25;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const snap = v => clamp(Math.round(v / step()) * step(), MIN, MAX);
+const frac = v => clamp((v - MIN) / (MAX - MIN), 0, 1);
+const ang = v => A0 + frac(v) * (A1 - A0);
+function color(f) {
+  f = clamp(f, 0, 1);
+  let i = 1;
+  while (i < STOPS.length - 1 && f > STOPS[i][0]) i++;
+  const [f0, c0] = STOPS[i - 1], [f1, c1] = STOPS[i], u = (f - f0) / (f1 - f0);
+  return 'rgb(' + c0.map((c, k) => Math.round(c + (c1[k] - c) * u)).join(',') + ')';
+}
+function pt(a, r = R) { const t = a * Math.PI / 180; return [100 + r * Math.sin(t), 100 - r * Math.cos(t)]; }
+function arcPath(a, b) {
+  if (b - a < 0.01) return '';
+  const p = pt(a), q = pt(b);
+  return `M${p}A${R} ${R} 0 ${b - a > 180 ? 1 : 0} 1 ${q}`;
+}
+function node(tag, attrs) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+
+function send() {
+  clearTimeout(sendTimer);
+  pendingSend = false;
+  if (typeof requestAction === 'function') requestAction('Tint', local);
+  // Without confirmation the tile falls back to the variable.
+  clearTimeout(holdTimer);
+  holdTimer = setTimeout(() => { local = null; render(); }, 5000);
+}
+function sendLater() {
+  pendingSend = true;
+  clearTimeout(sendTimer);
+  sendTimer = setTimeout(send, 1200);
+}
+function stepBy(d) {
+  if (!s.valid) return;
+  local = snap((local ?? s.tint) + d * step());
+  render();
+  sendLater();
+}
+
+function valueAt(e) {
+  const r = arc.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * 200 - 100, y = (e.clientY - r.top) / r.height * 200 - 100;
+  let a = Math.atan2(x, -y) * 180 / Math.PI;
+  if (a > A1 || a < A0) a = a > 0 ? A1 : A0;
+  return MIN + (a - A0) / (A1 - A0) * (MAX - MIN);
+}
+arc.addEventListener('pointerdown', e => {
+  if (!s.valid) return;
+  drag = true;
+  arc.setPointerCapture(e.pointerId);
+  local = snap(valueAt(e));
+  render();
+});
+const up = () => { if (drag) { drag = false; send(); } };
+// A release outside the tile may not reach it: a move without a pressed button, a lost capture
+// or the window losing focus also end the drag.
+arc.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (e.pointerType === 'mouse' && e.buttons === 0) { up(); return; }
+  local = snap(valueAt(e));
+  render();
+});
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => arc.addEventListener(t, up));
+window.addEventListener('pointerup', up);
+window.addEventListener('blur', up);
+root.querySelectorAll('.pm button').forEach(b => b.addEventListener('click', () => stepBy(+b.dataset.d)));
+$('auto').addEventListener('click', () => {
+  if (s.valid && s.manual && typeof requestAction === 'function') requestAction('Auto', true);
+});
+
+// One dot per level.
+function buildDots() {
+  const g = $('dots');
+  g.textContent = '';
+  for (let v = MIN; v <= MAX; v += step()) {
+    const q = pt(ang(v));
+    g.append(node('circle', {cx: q[0].toFixed(2), cy: q[1].toFixed(2), r: 1.8, class: 'dot', 'data-v': v}));
+  }
+}
+
+function renderFill(to) {
+  const g = $('fill');
+  g.textContent = '';
+  const from = A0;
+  // Round cap at the clear end, so that 0 % still shows a light dot under the knob.
+  const q = pt(from);
+  g.append(node('circle', {cx: q[0], cy: q[1], r: 3.5, fill: color(0)}));
+  if (to - from < 0.01) return;
+  const pieces = Math.max(1, Math.ceil((to - from) / 3));
+  const w = (to - from) / pieces;
+  for (let i = 0; i < pieces; i++) {
+    const a = from + i * w, b = Math.min(to, a + w + 0.6);   // slight overlap hides the seams
+    g.append(node('path', {d: arcPath(a, b), stroke: color((a + w / 2 - A0) / (A1 - A0))}));
+  }
+}
+
+function render() {
+  const t = s.texts || {};
+  $('invalid').hidden = !!s.valid;
+  $('box').hidden = !s.valid;
+  $('invalid').textContent = t.invalid || '';
+  if (!s.valid) return;
+
+  if (!built) { built = true; buildDots(); }
+  const v = local ?? s.tint, a = ang(v);
+  $('track').setAttribute('d', arcPath(A0, A1));
+  renderFill(a);
+  // Dots: white on the dark part of the fill, dark on its light part, grey beyond the knob.
+  [...$('dots').children].forEach(d => {
+    const dv = +d.dataset.v;
+    d.classList.toggle('off', dv > v + 0.01);
+    d.classList.toggle('dark', dv <= v + 0.01 && frac(dv) < 0.4);
+  });
+  const k = pt(a);
+  $('knob').setAttribute('cx', k[0]); $('knob').setAttribute('cy', k[1]);
+  $('knob').setAttribute('fill', color(frac(v)));
+
+  $('val').textContent = Math.round(v) + ' %';
+  const [minus, plus] = root.querySelectorAll('.pm button');
+  minus.disabled = v <= MIN;
+  plus.disabled = v >= MAX;
+  $('auto').textContent = t.auto;
+  $('auto').classList.toggle('on', !s.manual);
+}
+
+function showMessage() {
+  const m = $('message');
+  if (!s.message || (s.messageId || 0) === shownMessage) return;
+  shownMessage = s.messageId;
+  m.textContent = s.message;
+  m.hidden = false;
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => { m.hidden = true; }, 6000);
+}
+
+window.handleMessage = data => {
+  try {
+    s = typeof data === 'string' ? JSON.parse(data) : data;
+    // Keep an edit that is still being dragged or waiting to be sent; otherwise follow the variable.
+    if (!drag && !pendingSend && (local === null || Math.abs(local - s.tint) < 0.01)) { clearTimeout(holdTimer); local = null; }
+    render();
+    showMessage();
+  } catch (e) {}
+};
+
+window.addEventListener('resize', fit);
+window.addEventListener('load', () => { fit(); shade(); });
+fit();
+shade();
+render();
+})();
+</script>

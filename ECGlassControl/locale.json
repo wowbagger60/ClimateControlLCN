@@ -1,0 +1,19 @@
+{
+  "translations": {
+    "de": {
+      "Auto": "Auto",
+      "Automatic": "Automatik",
+      "Automatic could not be switched on.": "Die Automatik konnte nicht eingeschaltet werden.",
+      "Manual could not be switched on.": "Der Handbetrieb konnte nicht eingeschaltet werden.",
+      "Not configured": "Nicht konfiguriert",
+      "Output manual (O1)": "Ausgang Handbetrieb (O1)",
+      "Output tint (O3)": "Ausgang Tönung (O3)",
+      "Select both output variables.": "Beide Ausgangsvariablen wählen.",
+      "Select the intensity variables of the two LCN outputs.": "Die Helligkeitsvariablen der beiden LCN-Ausgänge wählen.",
+      "The instance is busy.": "Die Instanz ist beschäftigt.",
+      "The instance is not configured correctly.": "Die Instanz ist nicht richtig konfiguriert.",
+      "The tint could not be set.": "Die Tönung konnte nicht gesetzt werden.",
+      "Tint": "Tönung"
+    }
+  }
+}
