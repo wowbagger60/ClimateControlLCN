@@ -2,6 +2,7 @@
   "translations": {
     "de": {
       "A standard setpoint could not be stored.": "Ein Standard-Sollwert konnte nicht gespeichert werden.",
+      "Active setpoint": "Aktueller Sollwert",
       "Air quality (optional)": "Luftqualität (optional)",
       "At least": "Mindestens",
       "Auto": "Auto",

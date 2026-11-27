@@ -69,6 +69,8 @@ class TemperatureControl extends IPSModuleStrict
     {
         parent::ApplyChanges();
 
+        // Read only: the setpoint of the active regulator (S1 when heating, S2 when cooling).
+        $this->RegisterVariableFloat('ActiveSetpoint', $this->Translate('Active setpoint'), '~Temperature', 0);
         $this->RegisterVariableFloat('DefaultHeat', $this->Translate('Standard heating'), '~Temperature', 1);
         $this->RegisterVariableFloat('DefaultCool', $this->Translate('Standard cooling'), '~Temperature', 2);
         $this->EnableAction('DefaultHeat');
@@ -564,7 +566,11 @@ class TemperatureControl extends IPSModuleStrict
 
     private function pushState(): void
     {
-        $this->UpdateVisualizationValue(json_encode($this->tileState()));
+        $state = $this->tileState();
+        if ($state['valid'] && abs($this->GetValue('ActiveSetpoint') - $state['setpoint']) >= 0.001) {
+            $this->SetValue('ActiveSetpoint', $state['setpoint']);
+        }
+        $this->UpdateVisualizationValue(json_encode($state));
     }
 
     private function showMessage(string $text): void
