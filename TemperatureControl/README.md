@@ -5,6 +5,7 @@ Room thermostat for an LCN climate module built on the "Klima 1.3" template: reg
 ## Function
 
 **Tile (for everyone):**
+
 - Layout as in Symcon's thermostat: room temperature at the top, the setpoint large in the middle, − and + below.
 - The arc has a gradient from blue (low) to red (high) and one dot per degree. When heating it is coloured from the low end up to the handle, when cooling from the high end down to the handle; the rest is grey. A small mark outside shows the standard setpoint.
 - A tap on the room temperature opens the configured target, for example the temperature history.
@@ -14,7 +15,6 @@ Room thermostat for an LCN climate module built on the "Klima 1.3" template: reg
 - With occupancy B (occupied, climate off) or U (unoccupied) nothing can be set. The arc is then grey, without handle and buttons.
 - Humidity (with a drop) and air quality appear at the bottom when variables are selected. The tile shows their formatted value.
 - An occupancy change, a reset or a power failure ends manual (programmed in LCN). On a guest change, set the occupancy to U first and then to A or B.
-
 - The read-only variable **Active setpoint** holds the setpoint of the active regulator: S1 when heating, S2 when cooling. It follows every change, also from wall keys or LCN.
 
 **Standard setpoints (configuration):**

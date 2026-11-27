@@ -5,6 +5,7 @@ Raumthermostat für ein LCN-Klimamodul nach Vorlage „Klima 1.3“: Regler 1 he
 ## Funktion
 
 **Kachel (für alle):**
+
 - Aufbau wie Symcons Thermostat: oben die Raumtemperatur, in der Mitte gross der Sollwert, darunter − und +.
 - Der Bogen hat einen Farbverlauf von Blau (unten) nach Rot (oben) und einen Punkt pro Grad. Beim Heizen ist er vom unteren Ende bis zum Griff farbig, beim Kühlen vom oberen Ende bis zum Griff, der Rest ist grau. Eine kleine Marke aussen zeigt den Standard-Sollwert.
 - Ein Tipp auf die Raumtemperatur öffnet das eingestellte Ziel, zum Beispiel die Temperatur-Historie.
@@ -14,7 +15,6 @@ Raumthermostat für ein LCN-Klimamodul nach Vorlage „Klima 1.3“: Regler 1 he
 - Bei ABU B (belegt, Klima aus) oder U (unbelegt) lässt sich nichts einstellen. Der Bogen ist dann grau, ohne Griff und Knöpfe.
 - Feuchte (mit Tropfen) und Luftqualität erscheinen unten, wenn Variablen dafür gewählt sind. Gezeigt wird ihr formatierter Wert.
 - Ein ABU-Wechsel, ein Reset oder ein Stromausfall beenden den Handbetrieb (in LCN programmiert). Bei einem Gastwechsel ABU deshalb zuerst auf U und danach auf A oder B setzen.
-
 - Die Variable **Aktueller Sollwert** (nur lesen) enthält den Sollwert des aktiven Reglers: S1 beim Heizen, S2 beim Kühlen. Sie folgt jeder Änderung, auch von Tastern oder aus LCN.
 
 **Standard-Sollwerte (Konfiguration):**
